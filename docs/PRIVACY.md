@@ -9,6 +9,10 @@ as a Chrome extension.
 
 **Nothing.** merawallet has no backend, no analytics, no telemetry, and no accounts.
 We do not collect, store, sell, or share any personal data.
+**Website analytics**: the merawallet.xyz website (not the extension) uses Cloudflare
+Web Analytics — a cookieless, privacy-first counter with no cross-site tracking and no
+personal data collection. The extension itself contains no analytics of any kind.
+
 
 ## Where your data lives
 
