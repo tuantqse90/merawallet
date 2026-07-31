@@ -132,8 +132,17 @@ export function Wordmark({ size = "text-lg" }: { size?: string }) {
 /**
  * The Mera mark: an M drawn as one continuous route (NT's route-and-node language),
  * endpoint nodes at both feet, and a single mint spark in the letter's notch.
+ * With `animate`, the route draws itself on mount — left foot pops first, the stroke
+ * travels to the right foot, and the spark ignites last (boot screens only; headers
+ * stay static so the mark doesn't replay on every render).
  */
-export function Mark({ size = 28 }: { size?: number }) {
+export function Mark({
+  size = 28,
+  animate = false,
+}: {
+  size?: number;
+  animate?: boolean;
+}) {
   return (
     <svg width={size} height={size} viewBox="0 0 128 128" aria-hidden>
       <defs>
@@ -154,10 +163,33 @@ export function Mark({ size = 28 }: { size?: number }) {
         strokeWidth="13"
         strokeLinecap="round"
         strokeLinejoin="round"
+        pathLength={100}
+        className={animate ? "mark-draw-path" : undefined}
       />
-      <circle cx="26" cy="98" r="11" fill="url(#mw-n)" />
-      <circle cx="102" cy="98" r="11" fill="url(#mw-n)" />
-      <circle cx="64" cy="44" r="7" fill="#2CEDAC" />
+      <circle
+        cx="26"
+        cy="98"
+        r="11"
+        fill="url(#mw-n)"
+        className={animate ? "mark-draw-node" : undefined}
+        style={animate ? { animationDelay: "0.1s" } : undefined}
+      />
+      <circle
+        cx="102"
+        cy="98"
+        r="11"
+        fill="url(#mw-n)"
+        className={animate ? "mark-draw-node" : undefined}
+        style={animate ? { animationDelay: "0.95s" } : undefined}
+      />
+      <circle
+        cx="64"
+        cy="44"
+        r="7"
+        fill="#2CEDAC"
+        className={animate ? "mark-draw-node" : undefined}
+        style={animate ? { animationDelay: "1.15s" } : undefined}
+      />
     </svg>
   );
 }

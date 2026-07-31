@@ -279,10 +279,31 @@
   from { stroke-dashoffset: 0; }
   to { stroke-dashoffset: -50.27; }
 }
+/* Boot draw-on for the Mera mark: the route draws left foot → right foot
+   (path is normalized to pathLength=100), nodes pop as the stroke reaches them,
+   the mint spark ignites last. */
+@keyframes draw-m {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes node-pop {
+  0% { opacity: 0; transform: scale(0); }
+  70% { opacity: 1; transform: scale(1.3); }
+  100% { opacity: 1; transform: scale(1); }
+}
 
 .animate-pulse-glow { animation: pulse-glow 2.4s ease-in-out infinite; }
 .animate-glow-breathe { animation: glow-breathe 6s ease-in-out infinite; }
 .animate-ring-drain { animation: ring-drain 10s linear both; }
+.mark-draw-path {
+  stroke-dasharray: 100;
+  animation: draw-m 0.9s cubic-bezier(0.65, 0, 0.35, 1) 0.15s both;
+}
+.mark-draw-node {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: node-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
 .animate-pulse-glow-mint { animation: pulse-glow-mint 2.4s ease-in-out infinite; }
 .animate-modal-in { animation: modal-in 0.18s ease-out both; }
 .animate-fade-in { animation: fade-in 0.18s ease-out both; }

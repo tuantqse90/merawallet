@@ -168,7 +168,7 @@ function Welcome() {
     <>
       <div className="flex items-start gap-5">
         <span className="animate-glow-breathe mt-1 hidden shrink-0 rounded-3xl p-1 shadow-glow-primary sm:block">
-          <Mark size={72} />
+          <Mark size={72} animate />
         </span>
         <div className="space-y-3">
           <h1 className="text-3xl font-bold tracking-tight">

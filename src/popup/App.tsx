@@ -184,7 +184,7 @@ function Gate({ mode }: { mode: "new" | "locked" }) {
       <div className="flex flex-1 flex-col justify-center gap-6 px-5 pb-8">
         <div className="flex flex-col items-center gap-3">
           <span className="animate-glow-breathe rounded-3xl p-1 shadow-glow-primary">
-            <Mark size={64} />
+            <Mark size={64} animate />
           </span>
           <Wordmark size="text-2xl" />
         </div>
