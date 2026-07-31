@@ -231,6 +231,27 @@ export async function setActiveIndex(index: number): Promise<void> {
   await setLocal({ activeIndex: index });
 }
 
+/**
+ * The raw error chain for field debugging: "MeraError: … ← SecurityError: …".
+ * WebAuthn failures hide the real cause (SecurityError, NotAllowedError…) inside
+ * MeraError.cause, and that name is what distinguishes an rpId-permission problem
+ * from a cancelled prompt from a missing platform authenticator.
+ */
+export function rawErrorDetail(error: unknown): string {
+  const parts: string[] = [];
+  let e: unknown = error;
+  for (let depth = 0; e && depth < 4; depth++) {
+    if (e instanceof Error) {
+      parts.push(`${e.name}: ${e.message}`);
+      e = e.cause;
+    } else {
+      parts.push(String(e));
+      break;
+    }
+  }
+  return parts.join(" ← ");
+}
+
 /** Maps mera / generic failures to one calm sentence (demo's describeError table). */
 export function describeKeyringError(error: unknown): string {
   if (isMeraError(error)) {

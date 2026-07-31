@@ -1,5 +1,8 @@
+import { useState } from "react";
+import type { TokenBalance } from "../../chain/balances";
 import type { AccountRec, Settings } from "../../keyring/storage";
-import { formatAmount, formatPercent, formatUsd } from "../../lib/format";
+import { formatAmount, formatPercent, formatUsd, shortAddress } from "../../lib/format";
+import { Avatar } from "../../shared/Avatar";
 import { ErrorBanner, MicroLabel, TokenLogo } from "../../shared/ui";
 import { usePortfolio } from "../data";
 
@@ -9,17 +12,27 @@ export function Portfolio({
   onSend,
   onReceive,
   onSwap,
+  onAccounts,
+  onDetail,
 }: {
   account: AccountRec;
   settings: Settings;
   onSend: (tokenAddress?: string) => void;
   onReceive: () => void;
   onSwap: () => void;
+  onAccounts: () => void;
+  onDetail: (row: TokenBalance) => void;
 }) {
   const { rows, loading, error, refresh } = usePortfolio(
     account.address,
     settings.rpcUrl,
   );
+  const [copied, setCopied] = useState(false);
+  const copyAddress = async () => {
+    await navigator.clipboard.writeText(account.address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1400);
+  };
   const total = rows?.reduce((sum, r) => sum + (r.valueUsd ?? 0), 0);
   // 24h move of the priced part of the portfolio, value-weighted.
   const pricedTotal =
@@ -39,6 +52,45 @@ export function Portfolio({
 
   return (
     <div className="flex flex-col gap-4 px-3 pb-4 pt-4">
+      <div className="flex items-start justify-between px-1">
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={onAccounts}
+            className="group flex items-center gap-2.5 text-left"
+            title="Switch account"
+          >
+            <Avatar address={account.address} size={36} />
+            <span className="flex items-center gap-1 text-sm font-semibold">
+              {account.label}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="text-muted-foreground transition-transform group-hover:translate-y-0.5" aria-hidden>
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </span>
+          </button>
+        </div>
+        <span className="flex items-center gap-1.5 rounded-full border border-border/60 bg-card/70 px-2.5 py-1">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint opacity-60" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint" />
+          </span>
+          <span className="font-mono-num text-[10px] uppercase tracking-wider text-muted-foreground">
+            monad
+          </span>
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={copyAddress}
+        className="-mt-2 flex w-fit items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-2.5 py-1 font-mono-num text-[11px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+        title="Copy address"
+      >
+        {copied ? (
+          <span className="text-mint">copied ✓</span>
+        ) : (
+          shortAddress(account.address)
+        )}
+      </button>
       <div className="px-1">
         <MicroLabel className="mb-1">total balance</MicroLabel>
         <div className="flex items-end justify-between gap-2">
@@ -99,7 +151,7 @@ export function Portfolio({
           <button
             key={row.token.address}
             type="button"
-            onClick={() => onSend(row.token.address)}
+            onClick={() => onDetail(row)}
             className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-foreground/5"
           >
             <TokenLogo src={row.token.logoURI} symbol={row.token.symbol} size={34} />

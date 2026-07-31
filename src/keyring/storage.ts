@@ -31,7 +31,7 @@ export type Settings = {
   autoLockMinutes: number;
 };
 
-export type ActivityKind = "send" | "approve" | "swap";
+export type ActivityKind = "send" | "approve" | "swap" | "dapp";
 
 export type ActivityItem = {
   hash: `0x${string}`;

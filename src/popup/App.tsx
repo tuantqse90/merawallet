@@ -1,10 +1,14 @@
 // 360×600 popup shell. No WebAuthn here — locked/no-wallet states hand off to the
 // onboarding tab. Unlocked: bottom-tab navigation in the NullTerminal idiom.
 import { useState } from "react";
-import { lock } from "../keyring/keyring";
+import type { TokenBalance } from "../chain/balances";
+import { addAccount, lock, setActiveIndex, type KeyringState } from "../keyring/keyring";
+import { isExtension } from "../keyring/storage";
 import { openOnboarding } from "../lib/tabs";
 import { shortAddress } from "../lib/format";
+import { Avatar } from "../shared/Avatar";
 import {
+  GhostButton,
   Mark,
   MicroLabel,
   PrimaryButton,
@@ -19,9 +23,23 @@ import { Receive } from "./screens/Receive";
 import { Send } from "./screens/Send";
 import { Settings } from "./screens/Settings";
 import { Swap } from "./screens/Swap";
+import { TokenDetail } from "./screens/TokenDetail";
 
 export type Tab = "portfolio" | "swap" | "activity" | "settings";
-export type Overlay = { kind: "send"; prefillToken?: string } | { kind: "receive" } | null;
+export type Overlay =
+  | { kind: "send"; prefillToken?: string }
+  | { kind: "receive" }
+  | { kind: "accounts" }
+  | { kind: "detail"; row: TokenBalance }
+  | null;
+
+/** Tell the background hub so connected dApps get an accountsChanged event. */
+function notifyAccountsChanged(): void {
+  if (!isExtension) return;
+  void chrome.runtime
+    .sendMessage({ type: "mera:internal", action: "accountsChanged" })
+    .catch(() => {});
+}
 
 export function App() {
   const { state, reload } = useKeyring();
@@ -73,6 +91,30 @@ export function App() {
       {overlay?.kind === "receive" && account && (
         <Receive account={account} onClose={() => setOverlay(null)} />
       )}
+      {overlay?.kind === "detail" && account && (
+        <TokenDetail
+          row={overlay.row}
+          account={account}
+          onSend={() =>
+            setOverlay({ kind: "send", prefillToken: overlay.row.token.address })
+          }
+          onSwap={() => {
+            setOverlay(null);
+            setTab("swap");
+          }}
+          onClose={() => setOverlay(null)}
+        />
+      )}
+      {overlay?.kind === "accounts" && (
+        <AccountSheet
+          state={state}
+          onClose={() => setOverlay(null)}
+          onChanged={() => {
+            notifyAccountsChanged();
+            reload();
+          }}
+        />
+      )}
       <div key={tab} className="animate-fade-in flex min-h-full flex-col">
         {tab === "portfolio" && (
           <Portfolio
@@ -81,6 +123,8 @@ export function App() {
             onSend={(token) => setOverlay({ kind: "send", prefillToken: token })}
             onReceive={() => setOverlay({ kind: "receive" })}
             onSwap={() => setTab("swap")}
+            onAccounts={() => setOverlay({ kind: "accounts" })}
+            onDetail={(row) => setOverlay({ kind: "detail", row })}
           />
         )}
         {tab === "swap" && <Swap account={account} settings={settings} />}
@@ -177,6 +221,83 @@ function TabBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
 }
 
 // ---------------------------------------------------------------------------
+
+/** Bottom-sheet account switcher (MetaMask bones, NT skin). */
+function AccountSheet({
+  state,
+  onClose,
+  onChanged,
+}: {
+  state: KeyringState;
+  onClose: () => void;
+  onChanged: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <div className="absolute inset-0 z-30 flex flex-col justify-end bg-background/70 backdrop-blur-sm">
+      <button type="button" aria-label="Close" className="flex-1" onClick={onClose} />
+      <div className="glass-strong gradient-ring animate-modal-in max-h-[70%] overflow-y-auto rounded-t-2xl p-4">
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
+        <MicroLabel className="mb-3">accounts</MicroLabel>
+        <div className="space-y-2">
+          {state.accounts.map((a) => {
+            const active = a.index === state.activeIndex;
+            return (
+              <button
+                key={a.index}
+                type="button"
+                onClick={async () => {
+                  await setActiveIndex(a.index);
+                  onChanged();
+                  onClose();
+                }}
+                className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                  active
+                    ? "border-primary/50 bg-primary/10 shadow-glow-primary"
+                    : "border-border/60 hover:border-primary/40"
+                }`}
+              >
+                <Avatar address={a.address} size={30} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold">{a.label}</span>
+                  <span className="font-mono-num text-[11px] text-muted-foreground">
+                    {shortAddress(a.address)}
+                  </span>
+                </span>
+                {active && (
+                  <span className="font-mono-num text-[10px] uppercase tracking-wider text-mint">
+                    active
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        {error && <div className="mt-2 text-xs text-danger">{error}</div>}
+        <GhostButton
+          className="mt-3 w-full"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            setError(null);
+            try {
+              await addAccount();
+              onChanged();
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          + Derive next account
+        </GhostButton>
+      </div>
+    </div>
+  );
+}
 
 function Gate({ mode }: { mode: "new" | "locked" }) {
   return (

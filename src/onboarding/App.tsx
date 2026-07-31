@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   createWallet,
   describeKeyringError,
+  rawErrorDetail,
   getKeyringState,
   importWallet,
   revealMnemonic,
@@ -127,7 +128,7 @@ function CeremonyResult({
 
 function Welcome() {
   const [busy, setBusy] = useState<Flow | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ friendly: string; detail: string } | null>(null);
   const [address, setAddress] = useState<`0x${string}` | null>(null);
   const [mnemonic, setMnemonic] = useState("");
   const [showImport, setShowImport] = useState(false);
@@ -149,7 +150,7 @@ function Welcome() {
             : await importWallet(mnemonic);
       setAddress(addr);
     } catch (err) {
-      setError(describeKeyringError(err));
+      setError({ friendly: describeKeyringError(err), detail: rawErrorDetail(err) });
     } finally {
       setBusy(null);
     }
@@ -192,7 +193,14 @@ function Welcome() {
         ]}
       />
 
-      {error && <ErrorBanner>{error}</ErrorBanner>}
+      {error && (
+        <ErrorBanner>
+          <div>{error.friendly}</div>
+          <div className="code-literal mt-1 break-all font-mono text-[10px] opacity-75">
+            {error.detail}
+          </div>
+        </ErrorBanner>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Panel className="space-y-3 p-5">
@@ -269,7 +277,7 @@ function Welcome() {
 
 function Unlock() {
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ friendly: string; detail: string } | null>(null);
   const [done, setDone] = useState(false);
 
   const run = async () => {
@@ -279,7 +287,7 @@ function Unlock() {
       await unlock();
       setDone(true);
     } catch (err) {
-      setError(describeKeyringError(err));
+      setError({ friendly: describeKeyringError(err), detail: rawErrorDetail(err) });
     } finally {
       setBusy(false);
     }
@@ -290,7 +298,14 @@ function Unlock() {
       <BootTerminal
         lines={["session: locked", "awaiting passkey ceremony…"]}
       />
-      {error && <ErrorBanner>{error}</ErrorBanner>}
+      {error && (
+        <ErrorBanner>
+          <div>{error.friendly}</div>
+          <div className="code-literal mt-1 break-all font-mono text-[10px] opacity-75">
+            {error.detail}
+          </div>
+        </ErrorBanner>
+      )}
       {done ? (
         <Panel className="animate-reveal-up space-y-2 p-5">
           <MintChip>unlocked</MintChip>
@@ -312,7 +327,7 @@ function Unlock() {
 
 function Reveal() {
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ friendly: string; detail: string } | null>(null);
   const [words, setWords] = useState<string[] | null>(null);
 
   const run = async () => {
@@ -321,7 +336,7 @@ function Reveal() {
     try {
       setWords((await revealMnemonic()).split(" "));
     } catch (err) {
-      setError(describeKeyringError(err));
+      setError({ friendly: describeKeyringError(err), detail: rawErrorDetail(err) });
     } finally {
       setBusy(false);
     }
@@ -337,7 +352,14 @@ function Reveal() {
         Anyone with these words controls the wallet. Reveal them only on a
         screen nobody else can see, and never paste them into a website.
       </div>
-      {error && <ErrorBanner>{error}</ErrorBanner>}
+      {error && (
+        <ErrorBanner>
+          <div>{error.friendly}</div>
+          <div className="code-literal mt-1 break-all font-mono text-[10px] opacity-75">
+            {error.detail}
+          </div>
+        </ErrorBanner>
+      )}
       {words ? (
         <Panel className="animate-reveal-up p-5">
           <ol className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">

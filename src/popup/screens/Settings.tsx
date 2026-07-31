@@ -1,19 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { KeyringState } from "../../keyring/keyring";
-import { addAccount, setActiveIndex } from "../../keyring/keyring";
 import {
+  isExtension,
   setLocal,
   type Settings as SettingsType,
 } from "../../keyring/storage";
-import { shortAddress } from "../../lib/format";
 import { openOnboarding } from "../../lib/tabs";
-import {
-  GhostButton,
-  MicroLabel,
-  MintChip,
-  Panel,
-  VioletChip,
-} from "../../shared/ui";
+import { getConnectedSites, type ConnectedSite } from "../../provider/sites";
+import { GhostButton, MicroLabel, MintChip, Panel, VioletChip } from "../../shared/ui";
 
 export function Settings({
   state,
@@ -30,7 +24,23 @@ export function Settings({
   const [slippage, setSlippage] = useState(String(settings.slippageBps));
   const [autoLock, setAutoLock] = useState(String(settings.autoLockMinutes));
   const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [sites, setSites] = useState<ConnectedSite[] | null>(null);
+
+  const loadSites = () => {
+    void getConnectedSites().then((map) =>
+      setSites(Object.values(map).sort((a, b) => b.connectedAt - a.connectedAt)),
+    );
+  };
+  useEffect(loadSites, []);
+
+  const disconnect = async (origin: string) => {
+    if (isExtension) {
+      await chrome.runtime
+        .sendMessage({ type: "mera:internal", action: "disconnectSite", origin })
+        .catch(() => {});
+    }
+    loadSites();
+  };
 
   const save = async () => {
     const slippageBps = Math.min(5000, Math.max(1, Number(slippage) || 50));
@@ -47,44 +57,40 @@ export function Settings({
     <div className="flex flex-col gap-3 px-3 pb-4 pt-4">
       <Panel className="space-y-2.5">
         <div className="flex items-center justify-between">
-          <MicroLabel>accounts</MicroLabel>
+          <MicroLabel>connected sites</MicroLabel>
           <VioletChip>{state.mode === "vault" ? "vault" : "passkey"}</VioletChip>
         </div>
-        {state.accounts.map((a) => (
-          <button
-            key={a.index}
-            type="button"
-            onClick={async () => {
-              await setActiveIndex(a.index);
-              onChanged();
-            }}
-            className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition-colors ${
-              a.index === state.activeIndex
-                ? "border-primary/50 bg-primary/10"
-                : "border-border/60 hover:border-primary/40"
-            }`}
+        {sites === null && (
+          <div className="text-xs text-muted-foreground">Loading…</div>
+        )}
+        {sites?.length === 0 && (
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            No dApps connected yet. Sites you approve appear here, and each
+            signature still needs a confirmation window.
+          </p>
+        )}
+        {sites?.map((site) => (
+          <div
+            key={site.origin}
+            className="flex items-center gap-2.5 rounded-xl border border-border/60 px-3 py-2"
           >
-            <span className="text-sm font-semibold">{a.label}</span>
-            <span className="font-mono-num text-xs text-muted-foreground">
-              {shortAddress(a.address)}
+            {site.favicon ? (
+              <img src={site.favicon} alt="" width={18} height={18} className="rounded" />
+            ) : (
+              <span className="h-2 w-2 rounded-full bg-primary" />
+            )}
+            <span className="min-w-0 flex-1 truncate font-mono-num text-xs">
+              {site.origin.replace(/^https?:\/\//, "")}
             </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => disconnect(site.origin)}
+              className="text-[11px] font-semibold text-danger transition-opacity hover:opacity-80"
+            >
+              Disconnect
+            </button>
+          </div>
         ))}
-        {error && <div className="text-xs text-danger">{error}</div>}
-        <GhostButton
-          className="w-full"
-          onClick={async () => {
-            setError(null);
-            try {
-              await addAccount();
-              onChanged();
-            } catch (err) {
-              setError(err instanceof Error ? err.message : String(err));
-            }
-          }}
-        >
-          + Derive next account
-        </GhostButton>
       </Panel>
 
       <Panel className="space-y-3">
@@ -149,7 +155,7 @@ export function Settings({
       </Panel>
 
       <p className="px-1 text-center font-mono-num text-[10px] uppercase tracking-wider text-muted-foreground/60">
-        merawallet v0.2.0 · powered by mera + nullterminal
+        merawallet v0.3.0 · powered by mera + nullterminal
       </p>
     </div>
   );
