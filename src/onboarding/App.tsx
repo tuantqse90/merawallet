@@ -210,6 +210,12 @@ function Welcome() {
             One passkey prompt. Your device generates the credential; the wallet
             address falls out of it deterministically.
           </p>
+          <p className="rounded-lg border border-mint/30 bg-mint/5 px-2.5 py-1.5 text-[11px] leading-relaxed text-muted-foreground">
+            <span className="font-semibold text-mint">On a Mac:</span> when the
+            dialog asks where to save, pick{" "}
+            <span className="font-semibold text-foreground">iCloud Keychain</span>{" "}
+            — the "Chrome profile" option can't power a wallet (no PRF).
+          </p>
           <PrimaryButton onClick={() => run("create")} disabled={busy !== null}>
             {busy === "create" ? <Spinner /> : null} Create with a passkey
           </PrimaryButton>
