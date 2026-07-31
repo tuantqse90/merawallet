@@ -19,6 +19,7 @@ import {
 import { useKeyring, useSettings } from "./data";
 import { Telemetry } from "./Telemetry";
 import { Activity } from "./screens/Activity";
+import { Markets } from "./screens/Markets";
 import { Portfolio } from "./screens/Portfolio";
 import { Receive } from "./screens/Receive";
 import { Send } from "./screens/Send";
@@ -26,7 +27,7 @@ import { Settings } from "./screens/Settings";
 import { Swap } from "./screens/Swap";
 import { TokenDetail } from "./screens/TokenDetail";
 
-export type Tab = "portfolio" | "swap" | "activity" | "settings";
+export type Tab = "portfolio" | "markets" | "swap" | "activity" | "settings";
 export type Overlay =
   | { kind: "send"; prefillToken?: string }
   | { kind: "receive" }
@@ -154,6 +155,9 @@ export function App() {
             onDetail={(row) => setOverlay({ kind: "detail", row })}
           />
         )}
+        {tab === "markets" && (
+          <Markets onDetail={(row) => setOverlay({ kind: "detail", row })} />
+        )}
         {tab === "swap" && <Swap account={account} settings={settings} />}
         {tab === "activity" && <Activity settings={settings} />}
         {tab === "settings" && (
@@ -206,12 +210,13 @@ function Shell({
 function TabBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
   const items: { id: Tab; label: string; d: string }[] = [
     { id: "portfolio", label: "Wallet", d: "M3 10h18M5 6h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Zm11 8h.01" },
+    { id: "markets", label: "Markets", d: "M5 20V10m7 10V4m7 16v-7" },
     { id: "swap", label: "Swap", d: "M7 4v12m0 0-3-3m3 3 3-3m7 3V4m0 0-3 3m3-3 3 3" },
     { id: "activity", label: "Activity", d: "M3 12h4l2.5-6 5 12L17 12h4" },
     { id: "settings", label: "Settings", d: "M12 8.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 0 0 12 8.5Zm7.5 3.5a7.5 7.5 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7.6 7.6 0 0 0-2-1.2L14.7 3h-4l-.4 2.7a7.6 7.6 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5a7.5 7.5 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-1a7.6 7.6 0 0 0 2 1.2l.4 2.7h4l.4-2.7a7.6 7.6 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.06-.4.1-.8.1-1.2Z" },
   ];
   return (
-    <nav className="glass-strong z-20 grid grid-cols-4 border-t border-border/60">
+    <nav className="glass-strong z-20 grid grid-cols-5 border-t border-border/60">
       {items.map((item) => {
         const active = tab === item.id;
         return (
