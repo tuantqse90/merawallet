@@ -3,6 +3,7 @@ import type { MarketRow, NtToken } from "../../api/nullterminal";
 import { formatPercent, formatUsd } from "../../lib/format";
 import { MicroLabel, MintChip, TokenLogo } from "../../shared/ui";
 import { getMarketMap, getTokenList } from "../../popup/data";
+import { MiniSpark } from "../MiniSpark";
 
 type Row = { token: NtToken; market: MarketRow };
 
@@ -47,11 +48,11 @@ export function Markets() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border/60 text-left">
-              {["#", "token", "price", "24h", "volume 24h"].map((h) => (
+              {["#", "token", "price", "24h", "chart", "volume 24h"].map((h) => (
                 <th
                   key={h}
                   className={`px-4 py-2.5 font-mono-num text-[10px] font-semibold uppercase tracking-wider text-muted-foreground ${
-                    h === "price" || h === "24h" || h === "volume 24h" ? "text-right" : ""
+                    h === "price" || h === "24h" || h === "volume 24h" ? "text-right" : h === "chart" ? "text-center" : ""
                   }`}
                 >
                   {h}
@@ -63,7 +64,7 @@ export function Markets() {
             {rows === null &&
               [0, 1, 2, 3, 4].map((i) => (
                 <tr key={i}>
-                  <td colSpan={5} className="px-4 py-3">
+                  <td colSpan={6} className="px-4 py-3">
                     <div className="skeleton h-6 w-full" />
                   </td>
                 </tr>
@@ -94,6 +95,13 @@ export function Markets() {
                   {r.market.change24h !== undefined
                     ? formatPercent(r.market.change24h)
                     : "—"}
+                </td>
+                <td className="px-4 py-1.5 text-center">
+                  {i < 10 ? (
+                    <MiniSpark address={r.token.address} />
+                  ) : (
+                    <span className="text-muted-foreground/30">·</span>
+                  )}
                 </td>
                 <td className="font-mono-num px-4 py-2.5 text-right">
                   {r.market.volume24h !== undefined

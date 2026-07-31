@@ -155,8 +155,29 @@ function Heatmap({ days }: { days: PnlDay[] }) {
     }
     cells.push(col);
   }
+  // Month label above the first column of each new month.
+  const monthLabels = cells.map((col, i) => {
+    const m = new Date(col[0].date).toLocaleDateString("en-US", { month: "short" });
+    const prev =
+      i > 0
+        ? new Date(cells[i - 1][0].date).toLocaleDateString("en-US", { month: "short" })
+        : null;
+    return m !== prev ? m : "";
+  });
+
   return (
-    <div className="flex gap-1 overflow-x-auto pb-1">
+    <div className="space-y-1.5">
+      <div className="flex gap-1">
+        {monthLabels.map((label, i) => (
+          <span
+            key={i}
+            className="w-3 shrink-0 font-mono-num text-[8px] uppercase text-muted-foreground/70"
+          >
+            {label}
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-1 overflow-x-auto pb-1">
       {cells.map((col, i) => (
         <div key={i} className="flex flex-col gap-1">
           {col.map((cell) => {
@@ -179,6 +200,18 @@ function Heatmap({ days }: { days: PnlDay[] }) {
           })}
         </div>
       ))}
+      </div>
+      <div className="flex items-center justify-end gap-1.5 font-mono-num text-[8px] uppercase tracking-wider text-muted-foreground/70">
+        loss
+        {[0.9, 0.5].map((a) => (
+          <span key={`d${a}`} className="h-2.5 w-2.5 rounded-[3px]" style={{ background: `hsl(var(--danger) / ${a})` }} />
+        ))}
+        <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: "hsl(var(--muted))" }} />
+        {[0.5, 0.9].map((a) => (
+          <span key={`m${a}`} className="h-2.5 w-2.5 rounded-[3px]" style={{ background: `hsl(var(--mint) / ${a})` }} />
+        ))}
+        profit
+      </div>
     </div>
   );
 }

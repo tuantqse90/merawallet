@@ -3,18 +3,40 @@ import {
   fetchHistory,
   fetchPnl,
   fetchTrades,
+  type MarketRow,
   type PfPoint,
   type PfTrade,
   type WalletPnl,
 } from "../../api/nullterminal";
+import { NATIVE_MON } from "../../config";
 import type { AccountRec, Settings } from "../../keyring/storage";
-import { formatUsd, timeAgo } from "../../lib/format";
+import { formatPercent, formatUsd, timeAgo } from "../../lib/format";
 import { useCountUp } from "../../lib/useCountUp";
-import { Sparkline } from "../../shared/Sparkline";
 import { MicroLabel, Panel } from "../../shared/ui";
-import { usePortfolio } from "../../popup/data";
+import { getMarketMap, usePortfolio } from "../../popup/data";
+import { BigChart } from "../BigChart";
 import { Donut } from "../Donut";
 import type { View } from "../App";
+
+function HeroTile({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string;
+  sub?: React.ReactNode;
+}) {
+  return (
+    <div className="glass rounded-2xl border border-border/60 px-4 py-2.5">
+      <div className="font-mono-num text-[9px] uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
+      <div className="font-mono-num text-lg font-bold">{value}</div>
+      {sub && <div className="font-mono-num text-[10px]">{sub}</div>}
+    </div>
+  );
+}
 
 export function Overview({
   account,
@@ -29,6 +51,7 @@ export function Overview({
   const [history, setHistory] = useState<PfPoint[] | null>(null);
   const [pnl, setPnl] = useState<WalletPnl | null>(null);
   const [trades, setTrades] = useState<PfTrade[] | null>(null);
+  const [mon, setMon] = useState<MarketRow | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -41,6 +64,9 @@ export function Overview({
     void fetchTrades(account.address)
       .then((t) => alive && setTrades(t))
       .catch(() => alive && setTrades([]));
+    void getMarketMap()
+      .then((m) => alive && setMon(m[NATIVE_MON] ?? null))
+      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -49,8 +75,8 @@ export function Overview({
   const total = rows?.reduce((s, r) => s + (r.valueUsd ?? 0), 0);
   const animated = useCountUp(rows ? total : undefined);
   const values = history?.map((p) => p.v) ?? [];
-  const hi = values.length ? Math.max(...values) : undefined;
-  const lo = values.length ? Math.min(...values) : undefined;
+  const hi = values.length >= 2 ? Math.max(...values) : undefined;
+  const lo = values.length >= 2 ? Math.min(...values) : undefined;
 
   const slices = (rows ?? [])
     .filter((r) => (r.valueUsd ?? 0) > 0)
@@ -62,10 +88,30 @@ export function Overview({
 
   return (
     <div className="space-y-5">
-      <div>
-        <MicroLabel className="mb-1">portfolio value</MicroLabel>
-        <div className="font-mono-num text-4xl font-bold tracking-tight">
-          {rows ? formatUsd(animated ?? total) : "…"}
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <MicroLabel className="mb-1">portfolio value</MicroLabel>
+          <div className="font-mono-num text-4xl font-bold tracking-tight">
+            {rows ? formatUsd(animated ?? total) : "…"}
+          </div>
+        </div>
+        <div className="flex gap-2.5">
+          <HeroTile
+            label="mon price"
+            value={mon?.priceUsd !== undefined ? formatUsd(mon.priceUsd) : "…"}
+            sub={
+              mon?.change24h !== undefined ? (
+                <span className={mon.change24h >= 0 ? "text-mint" : "text-danger"}>
+                  {formatPercent(mon.change24h)}
+                </span>
+              ) : undefined
+            }
+          />
+          <HeroTile
+            label="assets held"
+            value={rows ? String(rows.filter((r) => r.balance > 0n).length) : "…"}
+            sub={<span className="text-muted-foreground">on monad</span>}
+          />
         </div>
       </div>
 
@@ -79,11 +125,9 @@ export function Overview({
           )}
         </div>
         {history === null ? (
-          <div className="skeleton h-44 w-full" />
+          <div className="skeleton h-48 w-full" />
         ) : values.length >= 2 ? (
-          <div className="h-44">
-            <Sparkline values={values} width={880} height={176} />
-          </div>
+          <BigChart points={history} />
         ) : (
           <div className="flex h-44 items-center justify-center text-sm text-muted-foreground">
             Value history builds as the NullTerminal index sees this address.

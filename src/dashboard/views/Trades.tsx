@@ -3,16 +3,28 @@ import { fetchTrades, type PfTrade } from "../../api/nullterminal";
 import { EXPLORER_URL } from "../../config";
 import type { AccountRec } from "../../keyring/storage";
 import { formatUsd, shortAddress, timeAgo } from "../../lib/format";
-import { MicroLabel } from "../../shared/ui";
+import { MicroLabel, TokenLogo } from "../../shared/ui";
+import { getTokenList } from "../../popup/data";
 
 export function Trades({ account }: { account: AccountRec }) {
   const [trades, setTrades] = useState<PfTrade[] | null>(null);
+  const [logos, setLogos] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     let alive = true;
     void fetchTrades(account.address)
       .then((t) => alive && setTrades(t))
       .catch(() => alive && setTrades([]));
+    void getTokenList()
+      .then((list) => {
+        if (!alive) return;
+        const m = new Map<string, string>();
+        for (const t of list) {
+          if (t.logoURI) m.set(t.address.toLowerCase(), t.logoURI);
+        }
+        setLogos(m);
+      })
+      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -67,7 +79,16 @@ export function Trades({ account }: { account: AccountRec }) {
                     {t.side}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 font-semibold">{t.symbol}</td>
+                <td className="px-4 py-2.5">
+                  <span className="flex items-center gap-2 font-semibold">
+                    <TokenLogo
+                      src={logos.get(t.token.toLowerCase())}
+                      symbol={t.symbol}
+                      size={22}
+                    />
+                    {t.symbol}
+                  </span>
+                </td>
                 <td className="font-mono-num px-4 py-2.5 text-right">
                   {t.tokenAmt.toLocaleString("en-US", { maximumFractionDigits: 4 })}
                 </td>

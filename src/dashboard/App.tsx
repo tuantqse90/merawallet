@@ -126,7 +126,30 @@ export function App() {
                 </span>
               )}
             </button>
-            <StatusDot label="nullterminal data" />
+            <div className="flex items-center gap-2">
+              <a
+                href={`https://monadscan.com/address/${account.address}`}
+                target="_blank"
+                rel="noreferrer"
+                className="glass flex-1 rounded-lg border border-border/60 px-2 py-1 text-center font-mono-num text-[9px] uppercase tracking-wider text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+              >
+                scan ↗
+              </a>
+              <a
+                href="https://nullterminal.xyz"
+                target="_blank"
+                rel="noreferrer"
+                className="glass flex-1 rounded-lg border border-border/60 px-2 py-1 text-center font-mono-num text-[9px] uppercase tracking-wider text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+              >
+                terminal ↗
+              </a>
+            </div>
+            <div className="flex items-center justify-between">
+              <StatusDot label="nullterminal data" />
+              <span className="font-mono-num text-[9px] text-muted-foreground/60">
+                v0.7.0
+              </span>
+            </div>
           </div>
           <Telemetry rpcUrl={settings.rpcUrl} />
         </aside>

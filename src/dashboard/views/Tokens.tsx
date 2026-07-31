@@ -2,6 +2,7 @@ import type { AccountRec, Settings } from "../../keyring/storage";
 import { formatAmount, formatPercent, formatUsd } from "../../lib/format";
 import { MicroLabel, TokenLogo } from "../../shared/ui";
 import { usePortfolio } from "../../popup/data";
+import { MiniSpark } from "../MiniSpark";
 
 export function Tokens({
   account,
@@ -19,11 +20,11 @@ export function Tokens({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border/60 text-left">
-              {["token", "price", "24h", "balance", "value"].map((h) => (
+              {["token", "price", "24h", "chart", "balance", "value"].map((h) => (
                 <th
                   key={h}
                   className={`px-4 py-2.5 font-mono-num text-[10px] font-semibold uppercase tracking-wider text-muted-foreground ${
-                    h !== "token" ? "text-right" : ""
+                    h === "token" ? "" : h === "chart" ? "text-center" : "text-right"
                   }`}
                 >
                   {h}
@@ -35,12 +36,12 @@ export function Tokens({
             {rows === null &&
               [0, 1, 2, 3].map((i) => (
                 <tr key={i}>
-                  <td colSpan={5} className="px-4 py-3">
+                  <td colSpan={6} className="px-4 py-3">
                     <div className="skeleton h-6 w-full" />
                   </td>
                 </tr>
               ))}
-            {rows?.map((row) => (
+            {rows?.map((row, i) => (
               <tr
                 key={row.token.address}
                 className="transition-colors hover:bg-foreground/5"
@@ -72,6 +73,13 @@ export function Tokens({
                   }`}
                 >
                   {row.change24h !== undefined ? formatPercent(row.change24h) : "—"}
+                </td>
+                <td className="px-4 py-1.5 text-center">
+                  {i < 8 ? (
+                    <MiniSpark address={row.token.address} />
+                  ) : (
+                    <span className="text-muted-foreground/30">·</span>
+                  )}
                 </td>
                 <td className="font-mono-num px-4 py-2.5 text-right">
                   {formatAmount(row.balance, row.token.decimals)}
