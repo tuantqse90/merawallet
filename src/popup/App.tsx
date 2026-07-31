@@ -73,28 +73,30 @@ export function App() {
       {overlay?.kind === "receive" && account && (
         <Receive account={account} onClose={() => setOverlay(null)} />
       )}
-      {tab === "portfolio" && (
-        <Portfolio
-          account={account}
-          settings={settings}
-          onSend={(token) => setOverlay({ kind: "send", prefillToken: token })}
-          onReceive={() => setOverlay({ kind: "receive" })}
-          onSwap={() => setTab("swap")}
-        />
-      )}
-      {tab === "swap" && <Swap account={account} settings={settings} />}
-      {tab === "activity" && <Activity settings={settings} />}
-      {tab === "settings" && (
-        <Settings
-          state={state}
-          settings={settings}
-          onLock={async () => {
-            await lock();
-            reload();
-          }}
-          onChanged={reload}
-        />
-      )}
+      <div key={tab} className="animate-fade-in flex min-h-full flex-col">
+        {tab === "portfolio" && (
+          <Portfolio
+            account={account}
+            settings={settings}
+            onSend={(token) => setOverlay({ kind: "send", prefillToken: token })}
+            onReceive={() => setOverlay({ kind: "receive" })}
+            onSwap={() => setTab("swap")}
+          />
+        )}
+        {tab === "swap" && <Swap account={account} settings={settings} />}
+        {tab === "activity" && <Activity settings={settings} />}
+        {tab === "settings" && (
+          <Settings
+            state={state}
+            settings={settings}
+            onLock={async () => {
+              await lock();
+              reload();
+            }}
+            onChanged={reload}
+          />
+        )}
+      </div>
     </Shell>
   );
 }
@@ -179,7 +181,13 @@ function TabBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
 function Gate({ mode }: { mode: "new" | "locked" }) {
   return (
     <Shell>
-      <div className="flex flex-1 flex-col justify-center gap-5 px-5 pb-8">
+      <div className="flex flex-1 flex-col justify-center gap-6 px-5 pb-8">
+        <div className="flex flex-col items-center gap-3">
+          <span className="animate-glow-breathe rounded-3xl p-1 shadow-glow-primary">
+            <Mark size={64} />
+          </span>
+          <Wordmark size="text-2xl" />
+        </div>
         <div className="overflow-hidden rounded-2xl border border-border/80 bg-card/90 shadow-2xl">
           <div className="flex items-center gap-1.5 border-b border-border/60 px-3.5 py-2.5">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: "hsl(0 68% 60%)" }} />
@@ -189,7 +197,7 @@ function Gate({ mode }: { mode: "new" | "locked" }) {
               mera://boot
             </span>
           </div>
-          <div className="space-y-1.5 px-4 py-4 font-mono text-[12px] leading-relaxed text-muted-foreground">
+          <div className="space-y-1.5 px-4 pt-4 font-mono text-[12px] leading-relaxed text-muted-foreground">
             <div>
               <span className="text-mint">❯</span>{" "}
               {mode === "new" ? "no wallet on this device" : "session locked"}
@@ -201,6 +209,11 @@ function Gate({ mode }: { mode: "new" | "locked" }) {
                 : "one passkey ceremony restores signing"}
             </div>
             <span className="nt-caret inline-block h-[13px] w-[7px] translate-y-0.5 bg-mint" />
+          </div>
+          <div className="px-4 pb-4 pt-3">
+            <div className="h-0.5 overflow-hidden rounded-full bg-border/60">
+              <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-primary to-mint animate-boot-sweep" />
+            </div>
           </div>
         </div>
         <div className="space-y-2">

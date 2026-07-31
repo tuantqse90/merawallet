@@ -192,6 +192,35 @@
     font-variant-ligatures: none;
     font-feature-settings: "tnum" 1, "zero" 1, "liga" 0, "calt" 0;
   }
+
+  /* Loading placeholder rows (pairs with the shimmer keyframes). */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 25%,
+      hsl(var(--accent) / 0.5) 50%,
+      hsl(var(--muted)) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.8s linear infinite;
+    border-radius: 0.5rem;
+  }
+}
+
+/* Thin terminal scrollbar (popup panes + onboarding). */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.5);
 }
 
 /* Background texture helpers */
@@ -241,8 +270,19 @@
   from { transform: translateX(-100%); }
   to { transform: translateX(320%); }
 }
+@keyframes glow-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.88; }
+}
+/* Quote-freshness ring: drains one circumference (r=8 → 2πr ≈ 50.27) per refresh window. */
+@keyframes ring-drain {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -50.27; }
+}
 
 .animate-pulse-glow { animation: pulse-glow 2.4s ease-in-out infinite; }
+.animate-glow-breathe { animation: glow-breathe 6s ease-in-out infinite; }
+.animate-ring-drain { animation: ring-drain 10s linear both; }
 .animate-pulse-glow-mint { animation: pulse-glow-mint 2.4s ease-in-out infinite; }
 .animate-modal-in { animation: modal-in 0.18s ease-out both; }
 .animate-fade-in { animation: fade-in 0.18s ease-out both; }

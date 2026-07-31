@@ -1,7 +1,8 @@
 // Generates the extension icons (16/32/48/128) without any image dependency:
 // rasterizes the mark in pure math at 4x supersampling and PNG-encodes with node:zlib.
-// Mark = NullTerminal's route glyph (diagonal route through a "null" ring, two endpoint
-// nodes) in white on the Monad-violet tile — same geometry as nullterminal's favicon.
+// Mark = the Mera "M": one continuous route polyline with round caps/joins, endpoint
+// nodes at both feet, and a mint spark in the letter's notch — white on the
+// Monad-violet tile (mirrors <Mark/> in src/shared/ui.tsx; keep the two in sync).
 import { deflateSync } from "node:zlib";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -48,13 +49,19 @@ function encodePng(size, rgba) {
   ]);
 }
 
-// --- geometry (unit square coordinates) -------------------------------------
-const NODE_A = [0.25, 0.75];
-const NODE_B = [0.75, 0.25];
-const RING_R = 0.234;
-const STROKE = 0.086;
-const NODE_R = 0.098;
-const TILE_R = 0.227; // corner radius fraction (nullterminal favicon: 116/512)
+// --- geometry (unit square, mirrors the 128-viewBox SVG /128) ---------------
+// M polyline: (26,98) (26,34) (64,72) (102,34) (102,98)
+const M_POINTS = [
+  [0.203, 0.766],
+  [0.203, 0.266],
+  [0.5, 0.5625],
+  [0.797, 0.266],
+  [0.797, 0.766],
+];
+const STROKE = 0.102; // 13/128
+const NODE_R = 0.086; // 11/128 — feet nodes
+const SPARK = { x: 0.5, y: 0.344, r: 0.0547 }; // 7/128 mint dot in the notch
+const TILE_R = 0.227; // corner radius fraction (NT favicon: 116/512)
 
 const distSeg = (px, py, [ax, ay], [bx, by]) => {
   const vx = bx - ax, vy = by - ay;
@@ -65,6 +72,7 @@ const distSeg = (px, py, [ax, ay], [bx, by]) => {
 // Vertical brand gradient #9B86FF -> #5538C8 across the tile.
 const TOP = [0x9b, 0x86, 0xff];
 const BOT = [0x55, 0x38, 0xc8];
+const MINT = [0x2c, 0xed, 0xac];
 
 function shade(x, y) {
   // rounded-rect coverage
@@ -76,11 +84,21 @@ function shade(x, y) {
   const mix = y;
   let [R, G, B] = TOP.map((t, i) => Math.round(t + (BOT[i] - t) * mix));
 
-  // white glyph: diagonal route + ring stroke + endpoint nodes
-  const dLine = distSeg(x, y, NODE_A, NODE_B);
-  const dRing = Math.abs(Math.hypot(x - 0.5, y - 0.5) - RING_R);
-  const dNode = Math.min(Math.hypot(x - NODE_A[0], y - NODE_A[1]), Math.hypot(x - NODE_B[0], y - NODE_B[1]));
-  if (dLine <= STROKE / 2 || dRing <= STROKE / 2 || dNode <= NODE_R) {
+  // mint spark wins over everything inside the tile
+  if (Math.hypot(x - SPARK.x, y - SPARK.y) <= SPARK.r) {
+    return [...MINT, 255];
+  }
+
+  // white M: stroke along the polyline (round caps/joins fall out of distSeg) + feet nodes
+  let dM = Infinity;
+  for (let i = 0; i < M_POINTS.length - 1; i++) {
+    dM = Math.min(dM, distSeg(x, y, M_POINTS[i], M_POINTS[i + 1]));
+  }
+  const feet = Math.min(
+    Math.hypot(x - M_POINTS[0][0], y - M_POINTS[0][1]),
+    Math.hypot(x - M_POINTS[4][0], y - M_POINTS[4][1]),
+  );
+  if (dM <= STROKE / 2 || feet <= NODE_R) {
     R = G = B = 255;
   }
   return [R, G, B, 255];

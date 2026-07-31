@@ -1,9 +1,9 @@
 {
   "name": "merawallet",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
-  "description": "Passkey-native Monad wallet — a Chrome extension built on @category-labs/mera, styled after NullTerminal, swapping through the NullTerminal aggregator API.",
+  "description": "Passkey-native Monad wallet \u2014 a Chrome extension built on @category-labs/mera, styled after NullTerminal, swapping through the NullTerminal aggregator API.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

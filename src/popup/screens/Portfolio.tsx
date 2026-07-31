@@ -1,6 +1,6 @@
 import type { AccountRec, Settings } from "../../keyring/storage";
 import { formatAmount, formatPercent, formatUsd } from "../../lib/format";
-import { ErrorBanner, MicroLabel, Spinner, TokenLogo } from "../../shared/ui";
+import { ErrorBanner, MicroLabel, TokenLogo } from "../../shared/ui";
 import { usePortfolio } from "../data";
 
 export function Portfolio({
@@ -16,23 +16,56 @@ export function Portfolio({
   onReceive: () => void;
   onSwap: () => void;
 }) {
-  const { rows, error, refresh } = usePortfolio(account.address, settings.rpcUrl);
+  const { rows, loading, error, refresh } = usePortfolio(
+    account.address,
+    settings.rpcUrl,
+  );
   const total = rows?.reduce((sum, r) => sum + (r.valueUsd ?? 0), 0);
+  // 24h move of the priced part of the portfolio, value-weighted.
+  const pricedTotal =
+    rows?.reduce(
+      (sum, r) => sum + (r.change24h !== undefined ? (r.valueUsd ?? 0) : 0),
+      0,
+    ) ?? 0;
+  const change24h =
+    rows && pricedTotal > 0
+      ? rows.reduce(
+          (sum, r) =>
+            sum +
+            (r.change24h !== undefined ? (r.valueUsd ?? 0) * r.change24h : 0),
+          0,
+        ) / pricedTotal
+      : undefined;
 
   return (
     <div className="flex flex-col gap-4 px-3 pb-4 pt-4">
       <div className="px-1">
         <MicroLabel className="mb-1">total balance</MicroLabel>
         <div className="flex items-end justify-between gap-2">
-          <span className="font-mono-num text-3xl font-bold tracking-tight">
-            {rows ? formatUsd(total) : "…"}
+          <span className="flex items-baseline gap-2">
+            <span className="font-mono-num text-3xl font-bold tracking-tight">
+              {rows ? formatUsd(total) : "…"}
+            </span>
+            {change24h !== undefined && (
+              <span
+                className={`font-mono-num text-[11px] font-semibold ${
+                  change24h >= 0 ? "text-mint" : "text-danger"
+                }`}
+              >
+                {formatPercent(change24h)} 24h
+              </span>
+            )}
           </span>
           <button
             type="button"
             onClick={refresh}
-            className="mb-1 font-mono-num text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+            className={`mb-1 font-mono-num text-[10px] uppercase tracking-wider transition-colors ${
+              loading
+                ? "animate-pulse text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
-            refresh
+            {loading ? "syncing" : "refresh"}
           </button>
         </div>
       </div>
@@ -46,11 +79,22 @@ export function Portfolio({
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
       <div className="glass divide-y divide-border/40 overflow-hidden rounded-2xl border border-border/60">
-        {!rows && (
-          <div className="flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground">
-            <Spinner /> Reading balances…
-          </div>
-        )}
+        {!rows &&
+          [0, 1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-3 px-3.5 py-3">
+              <span className="skeleton h-[34px] w-[34px] shrink-0 rounded-full" />
+              <span className="min-w-0 flex-1 space-y-1.5">
+                <span className="flex justify-between gap-2">
+                  <span className="skeleton h-3.5 w-16" />
+                  <span className="skeleton h-3.5 w-20" />
+                </span>
+                <span className="flex justify-between gap-2">
+                  <span className="skeleton h-2.5 w-10" />
+                  <span className="skeleton h-2.5 w-14" />
+                </span>
+              </span>
+            </div>
+          ))}
         {rows?.map((row) => (
           <button
             key={row.token.address}

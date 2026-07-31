@@ -50,10 +50,12 @@ export function usePortfolio(
   rpcUrl: string | undefined,
 ): {
   rows: TokenBalance[] | null;
+  loading: boolean;
   error: string | null;
   refresh: () => void;
 } {
   const [rows, setRows] = useState<TokenBalance[] | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
@@ -62,6 +64,7 @@ export function usePortfolio(
     if (!address || !rpcUrl) return;
     let cancelled = false;
     setError(null);
+    setLoading(true);
     void (async () => {
       try {
         const [tokens, market] = await Promise.all([
@@ -79,6 +82,8 @@ export function usePortfolio(
         if (!cancelled) {
           setError(err instanceof Error ? err.message : String(err));
         }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
@@ -86,5 +91,5 @@ export function usePortfolio(
     };
   }, [address, rpcUrl, version]);
 
-  return { rows, error, refresh };
+  return { rows, loading, error, refresh };
 }

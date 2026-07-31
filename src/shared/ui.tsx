@@ -129,7 +129,10 @@ export function Wordmark({ size = "text-lg" }: { size?: string }) {
   );
 }
 
-/** The route-glyph mark (NT logo language: diagonal route through a null ring). */
+/**
+ * The Mera mark: an M drawn as one continuous route (NT's route-and-node language),
+ * endpoint nodes at both feet, and a single mint spark in the letter's notch.
+ */
 export function Mark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 128 128" aria-hidden>
@@ -145,14 +148,16 @@ export function Mark({ size = 28 }: { size?: number }) {
         </radialGradient>
       </defs>
       <path
-        d="M32 96 L96 32"
+        d="M26 98 V34 L64 72 L102 34 V98"
+        fill="none"
         stroke="url(#mw-g)"
-        strokeWidth="11"
+        strokeWidth="13"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      <circle cx="64" cy="64" r="30" stroke="url(#mw-g)" strokeWidth="11" fill="none" />
-      <circle cx="32" cy="96" r="12.5" fill="url(#mw-n)" />
-      <circle cx="96" cy="32" r="12.5" fill="url(#mw-n)" />
+      <circle cx="26" cy="98" r="11" fill="url(#mw-n)" />
+      <circle cx="102" cy="98" r="11" fill="url(#mw-n)" />
+      <circle cx="64" cy="44" r="7" fill="#2CEDAC" />
     </svg>
   );
 }

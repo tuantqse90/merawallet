@@ -46,6 +46,8 @@ export function Swap({
   const [picking, setPicking] = useState<Side | null>(null);
   const [amount, setAmount] = useState("");
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
+  const [quoteAt, setQuoteAt] = useState(0);
+  const [rateFlipped, setRateFlipped] = useState(false);
   const [quoting, setQuoting] = useState(false);
   const [allowance, setAllowance] = useState<bigint | null>(null);
   const [busy, setBusy] = useState<"approve" | "swap" | null>(null);
@@ -95,6 +97,7 @@ export function Swap({
       });
       if (seq === quoteSeq.current) {
         setQuote(q);
+        setQuoteAt(Date.now());
         setError(null);
       }
     } catch (err) {
@@ -235,6 +238,29 @@ export function Swap({
         <div className="flex items-center justify-between pb-3">
           <MicroLabel>swap</MicroLabel>
           <span className="flex items-center gap-1.5">
+            {quote && !noRoute && (
+              <svg
+                key={quoteAt}
+                width="16"
+                height="16"
+                viewBox="0 0 20 20"
+                className="-rotate-90"
+                aria-hidden
+              >
+                <circle cx="10" cy="10" r="8" stroke="hsl(var(--border))" strokeWidth="2.5" fill="none" />
+                <circle
+                  cx="10"
+                  cy="10"
+                  r="8"
+                  stroke="hsl(var(--mint))"
+                  strokeWidth="2.5"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray="50.27"
+                  className="animate-ring-drain"
+                />
+              </svg>
+            )}
             <MintChip>best route</MintChip>
             <span className="font-mono-num text-[10px] text-muted-foreground">
               {settings.slippageBps} bps
@@ -288,6 +314,19 @@ export function Swap({
 
         {quote && !noRoute && (
           <div className="mt-3 space-y-1.5 border-t border-border/40 pt-3">
+            <button
+              type="button"
+              onClick={() => setRateFlipped((v) => !v)}
+              className="flex w-full items-center justify-between gap-2 transition-opacity hover:opacity-80"
+              title="Flip rate"
+            >
+              <span className="font-mono-num text-[10px] uppercase tracking-wider text-muted-foreground">
+                rate
+              </span>
+              <span className="font-mono-num text-xs font-semibold">
+                {formatRate(quote, tokenIn, tokenOut, rateFlipped)}
+              </span>
+            </button>
             <DetailRow
               label="min received"
               value={`${formatAmount(BigInt(quote.otherAmountThreshold), tokenOut.decimals)} ${tokenOut.symbol}`}
@@ -305,11 +344,21 @@ export function Swap({
                   : "—"
               }
             />
-            <DetailRow
-              label="route"
-              value={dexes.join(" + ") || "—"}
-              mono={false}
-            />
+            <div className="flex items-start justify-between gap-2">
+              <span className="pt-0.5 font-mono-num text-[10px] uppercase tracking-wider text-muted-foreground">
+                route
+              </span>
+              <span className="flex flex-wrap justify-end gap-1">
+                {dexes.map((d) => (
+                  <span
+                    key={d}
+                    className="rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 font-mono-num text-[9px] uppercase tracking-wider text-primary"
+                  >
+                    {d.replaceAll("_", " ")}
+                  </span>
+                ))}
+              </span>
+            </div>
           </div>
         )}
       </div>
@@ -437,6 +486,22 @@ function AmountBox({
       </div>
     </div>
   );
+}
+
+function formatRate(
+  quote: QuoteResponse,
+  tokenIn: NtToken,
+  tokenOut: NtToken,
+  flipped: boolean,
+): string {
+  const inAmt = Number(quote.inputAmount) / 10 ** tokenIn.decimals;
+  const outAmt = Number(quote.outputAmount) / 10 ** tokenOut.decimals;
+  if (inAmt <= 0 || outAmt <= 0) return "—";
+  const [base, quoteTok, rate] = flipped
+    ? [tokenOut, tokenIn, inAmt / outAmt]
+    : [tokenIn, tokenOut, outAmt / inAmt];
+  const shown = rate >= 1 ? rate.toFixed(4) : rate.toPrecision(4);
+  return `1 ${base.symbol} = ${shown} ${quoteTok.symbol}`;
 }
 
 function DetailRow({

@@ -61,6 +61,7 @@ export function Activity({ settings }: { settings: Settings }) {
                 {item.summary}
               </span>
               <span className="font-mono-num text-[11px] text-muted-foreground">
+                <span className="uppercase text-primary/80">{item.kind}</span> ·{" "}
                 {shortAddress(item.hash)} · {timeAgo(item.ts)}
               </span>
             </span>

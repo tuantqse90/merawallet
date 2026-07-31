@@ -3,6 +3,51 @@ import QRCode from "qrcode";
 import type { AccountRec } from "../../keyring/storage";
 import { MicroLabel, MintChip } from "../../shared/ui";
 
+/** Paints the Mera M tile into the QR center (same geometry as <Mark/>, canvas edition). */
+function drawCenterMark(canvas: HTMLCanvasElement): void {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const s = canvas.width; // actual pixels (qrcode lib handles devicePixelRatio)
+  const tile = s * 0.24;
+  const x0 = (s - tile) / 2;
+  const y0 = (s - tile) / 2;
+  const k = tile / 128;
+
+  // violet tile with rounded corners
+  const grad = ctx.createLinearGradient(x0, y0, x0, y0 + tile);
+  grad.addColorStop(0, "#9B86FF");
+  grad.addColorStop(1, "#5538C8");
+  ctx.beginPath();
+  ctx.roundRect(x0, y0, tile, tile, 29 * k);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // white M route
+  ctx.beginPath();
+  ctx.moveTo(x0 + 26 * k, y0 + 98 * k);
+  ctx.lineTo(x0 + 26 * k, y0 + 34 * k);
+  ctx.lineTo(x0 + 64 * k, y0 + 72 * k);
+  ctx.lineTo(x0 + 102 * k, y0 + 34 * k);
+  ctx.lineTo(x0 + 102 * k, y0 + 98 * k);
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 13 * k;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.stroke();
+
+  // feet nodes + mint spark
+  ctx.fillStyle = "#ffffff";
+  for (const cx of [26, 102]) {
+    ctx.beginPath();
+    ctx.arc(x0 + cx * k, y0 + 98 * k, 11 * k, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.arc(x0 + 64 * k, y0 + 44 * k, 7 * k, 0, Math.PI * 2);
+  ctx.fillStyle = "#2CEDAC";
+  ctx.fill();
+}
+
 export function Receive({
   account,
   onClose,
@@ -14,12 +59,15 @@ export function Receive({
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!canvasRef.current) return;
-    void QRCode.toCanvas(canvasRef.current, account.address, {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    void QRCode.toCanvas(canvas, account.address, {
       width: 208,
       margin: 1,
+      // High error correction leaves room for the center mark.
+      errorCorrectionLevel: "H",
       color: { dark: "#0D0B14", light: "#EBEAF0" },
-    });
+    }).then(() => drawCenterMark(canvas));
   }, [account.address]);
 
   const copy = async () => {

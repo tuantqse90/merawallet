@@ -70,7 +70,7 @@ function BootTerminal({ lines }: { lines: string[] }) {
           mera://console
         </span>
       </div>
-      <div className="space-y-1.5 px-4 py-4 font-mono text-[12px] leading-relaxed text-muted-foreground">
+      <div className="space-y-1.5 px-4 pt-4 font-mono text-[12px] leading-relaxed text-muted-foreground">
         {lines.map((line, i) => (
           <div
             key={line}
@@ -84,6 +84,11 @@ function BootTerminal({ lines }: { lines: string[] }) {
           className="nt-caret inline-block h-[13px] w-[7px] translate-y-0.5 bg-mint"
           style={{ animationDelay: `${lines.length * 0.45}s` }}
         />
+      </div>
+      <div className="px-4 pb-4 pt-3">
+        <div className="h-0.5 overflow-hidden rounded-full bg-border/60">
+          <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-primary to-mint animate-boot-sweep" />
+        </div>
       </div>
     </div>
   );
@@ -161,16 +166,21 @@ function Welcome() {
 
   return (
     <>
-      <div className="space-y-3">
-        <h1 className="text-3xl font-bold tracking-tight">
-          A passkey <span className="gradient-text">is</span> the wallet.
-        </h1>
-        <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-          merawallet derives your Monad account from a WebAuthn passkey using{" "}
-          <span className="font-mono-num text-foreground">@category-labs/mera</span>.
-          No seed phrase to write down, no custody service — your authenticator
-          holds the entropy, swaps route through NullTerminal.
-        </p>
+      <div className="flex items-start gap-5">
+        <span className="animate-glow-breathe mt-1 hidden shrink-0 rounded-3xl p-1 shadow-glow-primary sm:block">
+          <Mark size={72} />
+        </span>
+        <div className="space-y-3">
+          <h1 className="text-3xl font-bold tracking-tight">
+            A passkey <span className="gradient-text">is</span> the wallet.
+          </h1>
+          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
+            merawallet derives your Monad account from a WebAuthn passkey using{" "}
+            <span className="font-mono-num text-foreground">@category-labs/mera</span>.
+            No seed phrase to write down, no custody service — your authenticator
+            holds the entropy, swaps route through NullTerminal.
+          </p>
+        </div>
       </div>
 
       <BootTerminal
