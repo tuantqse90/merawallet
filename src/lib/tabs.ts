@@ -10,3 +10,13 @@ export function openOnboarding(action?: "unlock" | "reveal"): void {
     window.open(`/${path}`, "_blank");
   }
 }
+
+/** Opens the full-tab dashboard (the expanded view). */
+export function openDashboard(): void {
+  if (isExtension && chrome.tabs?.create) {
+    void chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html") });
+    window.close();
+  } else {
+    window.open("/dashboard.html?demo", "_blank");
+  }
+}

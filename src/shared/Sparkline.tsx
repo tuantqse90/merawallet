@@ -1,6 +1,6 @@
 // Dependency-free SVG price sparkline: line + soft area fill, colored by direction
 // (mint up / danger down, NT status tokens). Draws itself on mount via dashoffset.
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 
 export function Sparkline({
   values,
@@ -11,6 +11,7 @@ export function Sparkline({
   width?: number;
   height?: number;
 }) {
+  const gradientId = useId();
   const { linePoints, areaPoints, up } = useMemo(() => {
     if (values.length < 2) return { linePoints: "", areaPoints: "", up: true };
     const min = Math.min(...values);
@@ -44,12 +45,12 @@ export function Sparkline({
       className="block"
     >
       <defs>
-        <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={tone} stopOpacity="0.22" />
           <stop offset="1" stopColor={tone} stopOpacity="0.02" />
         </linearGradient>
       </defs>
-      <polygon points={areaPoints} fill="url(#spark-fill)" />
+      <polygon points={areaPoints} fill={`url(#${gradientId})`} />
       <polyline
         points={linePoints}
         fill="none"

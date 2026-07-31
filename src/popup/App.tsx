@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { TokenBalance } from "../chain/balances";
 import { addAccount, lock, setActiveIndex, type KeyringState } from "../keyring/keyring";
 import { isExtension } from "../keyring/storage";
-import { openOnboarding } from "../lib/tabs";
+import { openDashboard, openOnboarding } from "../lib/tabs";
 import { shortAddress } from "../lib/format";
 import { Avatar } from "../shared/Avatar";
 import {
@@ -85,6 +85,16 @@ export function App() {
             title={account.address}
           >
             {shortAddress(account.address)}
+          </button>
+          <button
+            type="button"
+            onClick={openDashboard}
+            title="Open dashboard"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-border/60 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+            </svg>
           </button>
           <StatusDot />
         </div>

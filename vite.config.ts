@@ -17,6 +17,7 @@ export default defineConfig({
         popup: resolve(__dirname, "popup.html"),
         onboarding: resolve(__dirname, "onboarding.html"),
         approval: resolve(__dirname, "approval.html"),
+        dashboard: resolve(__dirname, "dashboard.html"),
         background: resolve(__dirname, "src/background.ts"),
         content: resolve(__dirname, "src/content.ts"),
         inpage: resolve(__dirname, "src/inpage.ts"),

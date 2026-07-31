@@ -100,6 +100,13 @@
   --glow-mint: 160 84% 55%;
   --glow-a-ring: 0.28;
   --glow-a-spread: 0.52;
+  /* Categorical viz slots — NullTerminal's validated dark-surface palette,
+     assigned in FIXED order, never cycled. */
+  --viz-1: 249 92.1% 70.4%;
+  --viz-2: 164 80.6% 36.5%;
+  --viz-3: 38 71.3% 43.7%;
+  --viz-4: 197 60.7% 45.9%;
+  --viz-5: 348 69.6% 60%;
 }
 
 @layer base {

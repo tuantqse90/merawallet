@@ -105,6 +105,42 @@ export async function fetchPnl(wallet: string): Promise<WalletPnl> {
   return getJson<WalletPnl>(`/v1/portfolio/${wallet}/pnl`);
 }
 
+export type PfPoint = { t: number; v: number };
+
+/** Portfolio USD value over time. */
+export async function fetchHistory(
+  wallet: string,
+): Promise<{ points: PfPoint[]; current: PfPoint | null }> {
+  return getJson(`/v1/portfolio/${wallet}/history`);
+}
+
+export type PfTrade = {
+  t: number;
+  side: "buy" | "sell";
+  usd: number;
+  tokenAmt: number;
+  token: string;
+  symbol: string;
+  tx: string;
+};
+
+/** The wallet's DEX buy/sell tape (router swaps from the NT index). */
+export async function fetchTrades(wallet: string): Promise<PfTrade[]> {
+  const body = await getJson<{ trades: PfTrade[] }>(
+    `/v1/portfolio/${wallet}/trades`,
+  );
+  return body.trades ?? [];
+}
+
+export type PnlDay = { date: string; realizedUsd: number; trades: number };
+
+/** Day-by-day realized PnL (UTC days), reconciles with /pnl by construction. */
+export async function fetchPnlCalendar(
+  wallet: string,
+): Promise<{ days: PnlDay[]; firstDate: string | null; realizedTotal: number }> {
+  return getJson(`/v1/portfolio/${wallet}/pnl-calendar`);
+}
+
 export type Candle = {
   t: number;
   o: number;
