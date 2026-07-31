@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { fetchPnl, type WalletPnl } from "../../api/nullterminal";
 import type { TokenBalance } from "../../chain/balances";
 import { setLocal, type AccountRec, type Settings } from "../../keyring/storage";
 import { formatAmount, formatPercent, formatUsd, shortAddress } from "../../lib/format";
@@ -8,6 +9,8 @@ import { ErrorBanner, MicroLabel, TokenLogo } from "../../shared/ui";
 import { usePortfolio } from "../data";
 
 const MASK = "•••••";
+
+const pnlCache = new Map<string, { data: WalletPnl; at: number }>();
 
 export function Portfolio({
   account,
@@ -59,6 +62,32 @@ export function Portfolio({
         ) / pricedTotal
       : undefined;
   const animatedTotal = useCountUp(rows ? total : undefined);
+  const [view, setView] = useState<"tokens" | "pnl">("tokens");
+  const [pnl, setPnl] = useState<WalletPnl | null>(null);
+  const [pnlError, setPnlError] = useState(false);
+
+  useEffect(() => {
+    if (view !== "pnl") return;
+    const cached = pnlCache.get(account.address);
+    if (cached && Date.now() - cached.at < 60_000) {
+      setPnl(cached.data);
+      return;
+    }
+    let alive = true;
+    setPnl(null);
+    setPnlError(false);
+    void fetchPnl(account.address)
+      .then((data) => {
+        pnlCache.set(account.address, { data, at: Date.now() });
+        if (alive) setPnl(data);
+      })
+      .catch(() => {
+        if (alive) setPnlError(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [view, account.address]);
 
   return (
     <div className="flex flex-col gap-4 px-3 pb-4 pt-4">
@@ -159,6 +188,28 @@ export function Portfolio({
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
+      <div className="glass flex items-center gap-1 self-start rounded-2xl border border-border/60 p-1">
+        {(["tokens", "pnl"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => setView(v)}
+            className={`rounded-xl px-3 py-1 font-mono-num text-[10px] uppercase tracking-wider transition-all duration-200 ${
+              view === v
+                ? "bg-primary/20 text-foreground shadow-glow-primary"
+                : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+            }`}
+          >
+            {v}
+          </button>
+        ))}
+      </div>
+
+      {view === "pnl" && (
+        <PnlView pnl={pnl} error={pnlError} hidden={hidden} />
+      )}
+
+      {view === "tokens" && (
       <div className="glass divide-y divide-border/40 overflow-hidden rounded-2xl border border-border/60">
         {!rows &&
           [0, 1, 2, 3].map((i) => (
@@ -222,6 +273,101 @@ export function Portfolio({
           </div>
         )}
       </div>
+      )}
+    </div>
+  );
+}
+
+function PnlView({
+  pnl,
+  error,
+  hidden,
+}: {
+  pnl: WalletPnl | null;
+  error: boolean;
+  hidden: boolean;
+}) {
+  if (error) {
+    return (
+      <div className="glass rounded-2xl border border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
+        PnL is unavailable right now — try again in a moment.
+      </div>
+    );
+  }
+  if (!pnl) {
+    return <div className="skeleton h-40 w-full rounded-2xl" />;
+  }
+  const mask = (v: number) => (hidden ? MASK : formatUsd(v));
+  const traded = pnl.tokens.filter((t) => t.totalUsd !== 0 || t.curValue > 0);
+  return (
+    <div className="animate-fade-in space-y-3">
+      <div className="grid grid-cols-3 gap-2">
+        {(
+          [
+            ["total", pnl.total],
+            ["realized", pnl.realized],
+            ["unrealized", pnl.unrealized],
+          ] as const
+        ).map(([label, value]) => (
+          <div key={label} className="glass rounded-2xl border border-border/60 p-2.5">
+            <div className="font-mono-num text-[9px] uppercase tracking-wider text-muted-foreground">
+              {label}
+            </div>
+            <div
+              className={`font-mono-num mt-0.5 text-sm font-bold ${
+                value >= 0 ? "text-mint" : "text-danger"
+              }`}
+            >
+              {value >= 0 && !hidden ? "+" : ""}
+              {mask(value)}
+            </div>
+          </div>
+        ))}
+      </div>
+      {traded.length === 0 ? (
+        <div className="glass rounded-2xl border border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
+          PnL tracks your DEX trades on Monad. Make a swap and it starts
+          counting.
+        </div>
+      ) : (
+        <div className="glass divide-y divide-border/40 overflow-hidden rounded-2xl border border-border/60">
+          {traded.slice(0, 20).map((t) => (
+            <div key={t.token} className="flex items-center gap-3 px-3.5 py-2.5">
+              <TokenLogo src={t.logo ?? undefined} symbol={t.symbol} size={30} />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="truncate text-sm font-semibold">{t.symbol}</span>
+                  <span
+                    className={`font-mono-num text-sm font-semibold ${
+                      t.totalUsd >= 0 ? "text-mint" : "text-danger"
+                    }`}
+                  >
+                    {t.totalUsd >= 0 && !hidden ? "+" : ""}
+                    {mask(t.totalUsd)}
+                  </span>
+                </span>
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="font-mono-num text-[11px] text-muted-foreground">
+                    avg {formatUsd(t.avgCost)}
+                  </span>
+                  {t.roiPct !== null && (
+                    <span
+                      className={`font-mono-num text-[11px] ${
+                        t.roiPct >= 0 ? "text-mint" : "text-danger"
+                      }`}
+                    >
+                      {formatPercent(t.roiPct)}
+                    </span>
+                  )}
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="text-center font-mono-num text-[9px] uppercase tracking-wider text-muted-foreground/60">
+        average-cost basis · powered by nullterminal
+      </p>
     </div>
   );
 }

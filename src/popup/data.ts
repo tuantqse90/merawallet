@@ -6,15 +6,29 @@ import { fetchMarket, fetchTokens, type MarketRow, type NtToken } from "../api/n
 import { loadBalances, type TokenBalance } from "../chain/balances";
 import { getPublicClient } from "../chain/monad";
 import { getKeyringState, type KeyringState } from "../keyring/keyring";
-import { getSettings, type Settings } from "../keyring/storage";
+import { getLocal, getSettings, type Settings } from "../keyring/storage";
 
 let tokenCache: NtToken[] | null = null;
 let marketCache: Record<string, MarketRow> | null = null;
 let marketFetchedAt = 0;
 
+/** NT curated list + the user's dApp-added tokens (wallet_watchAsset), deduped. */
 export async function getTokenList(): Promise<NtToken[]> {
   if (!tokenCache) tokenCache = await fetchTokens();
-  return tokenCache;
+  const custom = (await getLocal("customTokens")) ?? [];
+  if (!custom.length) return tokenCache;
+  const known = new Set(tokenCache.map((t) => t.address.toLowerCase()));
+  const extras: NtToken[] = custom
+    .filter((t) => !known.has(t.address.toLowerCase()))
+    .map((t) => ({
+      address: t.address,
+      symbol: t.symbol,
+      name: t.symbol,
+      decimals: t.decimals,
+      logoURI: t.logoURI,
+      verified: false,
+    }));
+  return [...tokenCache, ...extras];
 }
 
 export async function getMarketMap(): Promise<Record<string, MarketRow>> {

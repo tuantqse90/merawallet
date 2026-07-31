@@ -57,7 +57,12 @@ export type PendingRequest = {
   origin: string;
   tabId?: number;
   favicon?: string;
-  method: "connect" | "personal_sign" | "eth_signTypedData_v4" | "eth_sendTransaction";
+  method:
+    | "connect"
+    | "personal_sign"
+    | "eth_signTypedData_v4"
+    | "eth_sendTransaction"
+    | "wallet_watchAsset";
   params: unknown[];
   createdAt: number;
 };

@@ -16,6 +16,7 @@ import {
 import { WalletLockedError } from "../../keyring/signer";
 import { formatAmount, parseAmount, shortAddress } from "../../lib/format";
 import { openOnboarding } from "../../lib/tabs";
+import { Avatar } from "../../shared/Avatar";
 import {
   ErrorBanner,
   MicroLabel,
@@ -47,6 +48,7 @@ export function Send({
   const [sentHash, setSentHash] = useState<`0x${string}` | null>(null);
   const [recents, setRecents] = useState<`0x${string}`[]>([]);
   const [fee, setFee] = useState<string | null>(null);
+  const [isContract, setIsContract] = useState(false);
 
   useEffect(() => {
     void getLocal("recentRecipients").then((r) => setRecents(r ?? []));
@@ -71,6 +73,40 @@ export function Send({
   const validRecipient = isAddress(recipient);
   const ready =
     raw !== undefined && raw > 0n && validRecipient && !insufficient && !busy;
+
+  // Contract-recipient detection — sending tokens straight to a contract is a
+  // classic loss pattern worth one glanceable hint.
+  useEffect(() => {
+    setIsContract(false);
+    if (!validRecipient) return;
+    let alive = true;
+    void getPublicClient(settings.rpcUrl)
+      .getCode({ address: recipient as `0x${string}` })
+      .then((code) => {
+        if (alive) setIsContract(!!code && code !== "0x");
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [validRecipient, recipient, settings.rpcUrl]);
+
+  /** Native MAX leaves gas behind — Monad charges the LIMIT, not the usage. */
+  const setMax = async () => {
+    if (!row) return;
+    if (!isNative) {
+      setAmount((Number(row.balance) / 10 ** token.decimals).toString());
+      return;
+    }
+    try {
+      const price = await getPublicClient(settings.rpcUrl).getGasPrice();
+      const reserve = 21_000n * price * 2n;
+      const max = row.balance > reserve ? row.balance - reserve : 0n;
+      setAmount((Number(max) / 1e18).toString());
+    } catch {
+      setAmount((Number(row.balance) / 1e18).toString());
+    }
+  };
 
   // Best-effort network-fee preview once the form is complete (~300ms Monad blocks
   // make this cheap to keep fresh; Monad charges the LIMIT, so show the limit cost).
@@ -186,11 +222,7 @@ export function Send({
               {row && (
                 <button
                   type="button"
-                  onClick={() =>
-                    setAmount(
-                      (Number(row.balance) / 10 ** token.decimals).toString(),
-                    )
-                  }
+                  onClick={setMax}
                   className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary"
                 >
                   max {formatAmount(row.balance, token.decimals)}
@@ -221,16 +253,29 @@ export function Send({
 
           <div className="group/input rounded-xl border border-border/60 bg-muted/40 p-4 transition-colors duration-150 focus-within:border-primary/50 hover:border-border">
             <MicroLabel className="mb-2">recipient</MicroLabel>
-            <input
-              value={recipient}
-              onChange={(e) => setRecipient(e.target.value.trim())}
-              placeholder="0x…"
-              spellCheck={false}
-              className="code-literal font-mono-num w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/40"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value.trim())}
+                placeholder="0x…"
+                spellCheck={false}
+                className="code-literal font-mono-num w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground/40"
+              />
+              {validRecipient && (
+                <span className="animate-fade-in" title="Recipient identicon">
+                  <Avatar address={recipient} size={22} />
+                </span>
+              )}
+            </div>
             {recipient && !validRecipient && (
               <div className="mt-1.5 text-[11px] text-danger">
                 Not a valid Monad address.
+              </div>
+            )}
+            {isContract && (
+              <div className="mt-1.5 text-[11px] text-warning">
+                Recipient is a smart contract — make sure it can receive{" "}
+                {token.symbol}.
               </div>
             )}
             {!recipient && recents.length > 0 && (

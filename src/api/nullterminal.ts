@@ -76,6 +76,35 @@ async function getJson<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+export type TokenPnl = {
+  token: string;
+  symbol: string;
+  logo: string | null;
+  realizedUsd: number;
+  unrealizedUsd: number;
+  totalUsd: number;
+  costRemaining: number;
+  curValue: number;
+  curAmount: number;
+  avgCost: number;
+  roiPct: number | null;
+  untrackedAmount: number;
+  untrackedValue: number;
+};
+
+export type WalletPnl = {
+  tokens: TokenPnl[];
+  realized: number;
+  unrealized: number;
+  total: number;
+  updatedAt: number;
+};
+
+/** Average-cost PnL over the full NullTerminal dex_trades index. */
+export async function fetchPnl(wallet: string): Promise<WalletPnl> {
+  return getJson<WalletPnl>(`/v1/portfolio/${wallet}/pnl`);
+}
+
 export type Candle = {
   t: number;
   o: number;

@@ -196,6 +196,25 @@ async function handleRequest(
     };
   }
 
+  if (method === "wallet_watchAsset") {
+    // EIP-747 passes an object, not an array — normalize before storing.
+    const p = (Array.isArray(params) ? params[0] : params) as
+      | { type?: string; options?: { address?: string } }
+      | undefined;
+    if (p?.type !== "ERC20" || !p.options?.address) {
+      return { error: { code: -32602, message: "Only ERC20 assets are supported." } };
+    }
+    return requestApproval({
+      id: crypto.randomUUID(),
+      origin,
+      tabId,
+      favicon,
+      method: "wallet_watchAsset",
+      params: [p],
+      createdAt: Date.now(),
+    });
+  }
+
   if (APPROVAL_METHODS.has(method)) {
     if (!(await isConnected(origin))) {
       return { error: { code: 4100, message: "Connect the wallet first." } };

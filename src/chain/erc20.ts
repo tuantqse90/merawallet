@@ -8,3 +8,9 @@ export const erc20Abi = parseAbi([
   "function decimals() view returns (uint8)",
   "function symbol() view returns (string)",
 ]);
+
+/** Canonical WETH9 surface — WMON implements it. */
+export const wmonAbi = parseAbi([
+  "function deposit() payable",
+  "function withdraw(uint256 wad)",
+]);

@@ -1,21 +1,29 @@
 import { useEffect, useState } from "react";
+import { encodeFunctionData } from "viem";
 import { fetchChart } from "../../api/nullterminal";
 import type { TokenBalance } from "../../chain/balances";
+import { wmonAbi } from "../../chain/erc20";
+import { getPublicClient } from "../../chain/monad";
+import { sendTransaction } from "../../chain/tx";
 import { EXPLORER_URL, NATIVE_MON, WMON } from "../../config";
-import type { AccountRec } from "../../keyring/storage";
-import { formatAmount, formatPercent, formatUsd } from "../../lib/format";
+import { WalletLockedError } from "../../keyring/signer";
+import type { AccountRec, Settings } from "../../keyring/storage";
+import { formatAmount, formatPercent, formatUsd, parseAmount } from "../../lib/format";
+import { openOnboarding } from "../../lib/tabs";
 import { Sparkline } from "../../shared/Sparkline";
-import { GhostButton, MicroLabel, MintChip, Panel, PrimaryButton, TokenLogo } from "../../shared/ui";
+import { GhostButton, MicroLabel, MintChip, Panel, PrimaryButton, Spinner, TokenLogo } from "../../shared/ui";
 
 export function TokenDetail({
   row,
   account,
+  settings,
   onSend,
   onSwap,
   onClose,
 }: {
   row: TokenBalance;
   account: AccountRec;
+  settings: Settings;
   onSend: () => void;
   onSwap: () => void;
   onClose: () => void;
@@ -129,6 +137,15 @@ export function TokenDetail({
           </GhostButton>
         </div>
 
+        {(isNative || token.address.toLowerCase() === WMON.toLowerCase()) && (
+          <WrapPanel
+            mode={isNative ? "wrap" : "unwrap"}
+            row={row}
+            account={account}
+            settings={settings}
+          />
+        )}
+
         <div className="grid grid-cols-2 gap-2">
           <a
             href={explorerHref}
@@ -149,6 +166,136 @@ export function TokenDetail({
         </div>
       </div>
     </div>
+  );
+}
+
+/** One-tap MON ↔ WMON conversion — daily Monad life, one WETH9 call. */
+function WrapPanel({
+  mode,
+  row,
+  account,
+  settings,
+}: {
+  mode: "wrap" | "unwrap";
+  row: TokenBalance;
+  account: AccountRec;
+  settings: Settings;
+}) {
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const raw = parseAmount(amount, 18);
+  const insufficient = raw !== undefined && raw > row.balance;
+  const ready = raw !== undefined && raw > 0n && !insufficient && !busy;
+
+  const setMax = async () => {
+    if (mode === "unwrap") {
+      setAmount((Number(row.balance) / 1e18).toString());
+      return;
+    }
+    // Native MAX must leave gas behind — Monad charges the LIMIT.
+    try {
+      const price = await getPublicClient(settings.rpcUrl).getGasPrice();
+      const reserve = 60_000n * price * 2n;
+      const max = row.balance > reserve ? row.balance - reserve : 0n;
+      setAmount((Number(max) / 1e18).toString());
+    } catch {
+      setAmount((Number(row.balance) / 1e18).toString());
+    }
+  };
+
+  const submit = async () => {
+    if (!ready || raw === undefined) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await sendTransaction({
+        accountIndex: account.index,
+        from: account.address,
+        rpcUrl: settings.rpcUrl,
+        kind: "swap",
+        summary:
+          mode === "wrap"
+            ? `Wrap ${formatAmount(raw, 18)} MON → WMON`
+            : `Unwrap ${formatAmount(raw, 18)} WMON → MON`,
+        tx:
+          mode === "wrap"
+            ? {
+                to: WMON,
+                value: raw,
+                data: encodeFunctionData({ abi: wmonAbi, functionName: "deposit" }),
+              }
+            : {
+                to: WMON,
+                data: encodeFunctionData({
+                  abi: wmonAbi,
+                  functionName: "withdraw",
+                  args: [raw],
+                }),
+              },
+      });
+      setDone(true);
+      setAmount("");
+    } catch (err) {
+      if (err instanceof WalletLockedError) {
+        openOnboarding("unlock");
+        return;
+      }
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Panel className="space-y-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between"
+      >
+        <MicroLabel>{mode === "wrap" ? "wrap to wmon" : "unwrap to mon"}</MicroLabel>
+        <span className="font-mono-num text-[10px] text-muted-foreground">
+          {open ? "−" : "+"}
+        </span>
+      </button>
+      {open && (
+        <div className="animate-fade-in space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              inputMode="decimal"
+              placeholder="0.0"
+              className="font-mono-num w-full min-w-0 rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-sm outline-none transition-colors focus:border-primary/50 placeholder:text-muted-foreground/40"
+            />
+            <button
+              type="button"
+              onClick={setMax}
+              className="rounded bg-primary/15 px-1.5 py-1 text-[10px] font-bold uppercase tracking-wide text-primary"
+            >
+              max
+            </button>
+          </div>
+          {error && <div className="text-[11px] text-danger">{error}</div>}
+          {done && (
+            <div className="font-mono-num text-[11px] uppercase tracking-wider text-mint">
+              sent — track it in activity
+            </div>
+          )}
+          <GhostButton className="w-full" onClick={submit} disabled={!ready}>
+            {busy ? <Spinner /> : null}
+            {insufficient
+              ? "Insufficient balance"
+              : mode === "wrap"
+                ? "Wrap MON"
+                : "Unwrap WMON"}
+          </GhostButton>
+        </div>
+      )}
+    </Panel>
   );
 }
 

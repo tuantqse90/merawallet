@@ -3,6 +3,7 @@ import {
   createPublicClient,
   createWalletClient,
   defineChain,
+  fallback,
   type LocalAccount,
   type PublicClient,
 } from "viem";
@@ -25,10 +26,18 @@ export const monad = defineChain({
 
 // No JSON-RPC request batching: the public Monad RPC drops/413s large batches.
 // Multicall3 (aggregate3) does the fan-in on-chain instead.
+// A user-overridden RPC gets the default as a fallback — a dead custom endpoint
+// degrades instead of bricking the wallet.
+function transportFor(rpcUrl: string) {
+  return rpcUrl && rpcUrl !== DEFAULT_RPC_URL
+    ? fallback([http(rpcUrl), http(DEFAULT_RPC_URL)])
+    : http(DEFAULT_RPC_URL);
+}
+
 export function getPublicClient(rpcUrl: string): PublicClient {
-  return createPublicClient({ chain: monad, transport: http(rpcUrl) });
+  return createPublicClient({ chain: monad, transport: transportFor(rpcUrl) });
 }
 
 export function getWalletClient(account: LocalAccount, rpcUrl: string) {
-  return createWalletClient({ account, chain: monad, transport: http(rpcUrl) });
+  return createWalletClient({ account, chain: monad, transport: transportFor(rpcUrl) });
 }

@@ -12,7 +12,7 @@ import { erc20Abi } from "../chain/erc20";
 import { getPublicClient } from "../chain/monad";
 import { sendTransaction } from "../chain/tx";
 import { getKeyringState, type KeyringState } from "../keyring/keyring";
-import { getSettings } from "../keyring/storage";
+import { addCustomToken, getSettings } from "../keyring/storage";
 import { withViemAccount, WalletLockedError } from "../keyring/signer";
 import { shortAddress } from "../lib/format";
 import { openOnboarding } from "../lib/tabs";
@@ -115,7 +115,11 @@ export function App() {
     );
   }
 
-  const needsUnlock = req.method !== "connect" && keyring !== null && !keyring.unlocked;
+  const needsUnlock =
+    req.method !== "connect" &&
+    req.method !== "wallet_watchAsset" &&
+    keyring !== null &&
+    !keyring.unlocked;
   const activeAccount =
     keyring?.accounts.find((a) => a.index === keyring.activeIndex) ??
     keyring?.accounts[0];
@@ -131,6 +135,7 @@ export function App() {
         {req.method === "eth_sendTransaction" && (
           <TransactionView req={req} accountAddress={activeAccount?.address} />
         )}
+        {req.method === "wallet_watchAsset" && <WatchAssetView req={req} />}
         {error && <ErrorBanner>{error}</ErrorBanner>}
       </div>
 
@@ -172,10 +177,17 @@ function labelFor(method: PendingRequest["method"]): string {
       return "Connect";
     case "eth_sendTransaction":
       return "Confirm";
+    case "wallet_watchAsset":
+      return "Add token";
     default:
       return "Sign";
   }
 }
+
+type WatchAssetParam = {
+  type: "ERC20";
+  options: { address: string; symbol?: string; decimals?: number; image?: string };
+};
 
 // ---------------------------------------------------------------------------
 // execution
@@ -187,6 +199,17 @@ async function execute(req: PendingRequest, keyring: KeyringState): Promise<unkn
   if (!account) throw new Error("No account available.");
 
   if (req.method === "connect") return null; // background records the site
+
+  if (req.method === "wallet_watchAsset") {
+    const [{ options }] = req.params as [WatchAssetParam];
+    await addCustomToken({
+      address: options.address,
+      symbol: options.symbol ?? "TOKEN",
+      decimals: options.decimals ?? 18,
+      logoURI: options.image,
+    });
+    return true;
+  }
 
   if (req.method === "personal_sign") {
     const [message] = req.params as [string];
@@ -397,6 +420,37 @@ function TypedDataView({ req }: { req: PendingRequest }) {
   );
 }
 
+// Approvals at or above 2^255 are effectively infinite allowances.
+const UNLIMITED_THRESHOLD = 1n << 255n;
+
+function WatchAssetView({ req }: { req: PendingRequest }) {
+  const [{ options }] = req.params as [WatchAssetParam];
+  return (
+    <>
+      <MicroLabel>add token</MicroLabel>
+      <Panel className="flex items-center gap-3">
+        {options.image ? (
+          <img src={options.image} alt="" width={36} height={36} className="rounded-full bg-card" />
+        ) : (
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent font-mono-num text-[11px] font-bold">
+            {(options.symbol ?? "?").slice(0, 3).toUpperCase()}
+          </span>
+        )}
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold">{options.symbol ?? "Unknown"}</span>
+          <span className="code-literal font-mono-num text-xs text-muted-foreground">
+            {shortAddress(options.address)}
+          </span>
+        </span>
+      </Panel>
+      <p className="text-[11px] leading-relaxed text-muted-foreground/70">
+        Adds this token to your wallet's list. Anyone can create a token with any
+        symbol — verify the contract address against an official source.
+      </p>
+    </>
+  );
+}
+
 function TransactionView({
   req,
   accountAddress,
@@ -406,6 +460,8 @@ function TransactionView({
 }) {
   const tx = (req.params as [TxParam])[0] ?? {};
   const erc20 = decodeErc20(tx.data);
+  const unlimited =
+    erc20?.fn === "approve" && erc20.amount >= UNLIMITED_THRESHOLD;
   const mon = tx.value ? formatEther(BigInt(tx.value)) : "0";
   const [gas, setGas] = useState<string | null>(null);
 
@@ -438,6 +494,15 @@ function TransactionView({
   return (
     <>
       <MicroLabel>transaction request</MicroLabel>
+      {unlimited && (
+        <div className="rounded-xl border border-warning/40 bg-warning/10 px-3 py-2.5 text-[11px] leading-relaxed text-warning">
+          <span className="font-bold uppercase tracking-wide">
+            Unlimited spending approval
+          </span>{" "}
+          — this contract could move ALL of this token, now or later. Approve
+          only if you trust the site.
+        </div>
+      )}
       <Panel className="space-y-2">
         {erc20 ? (
           <>
@@ -449,7 +514,10 @@ function TransactionView({
               label={erc20.fn === "transfer" ? "to" : "spender"}
               value={shortAddress(erc20.to)}
             />
-            <Row label="amount (raw)" value={erc20.amount.toString()} />
+            <Row
+              label="amount (raw)"
+              value={unlimited ? "UNLIMITED" : erc20.amount.toString()}
+            />
           </>
         ) : (
           <>

@@ -160,7 +160,7 @@ export function Settings({
       </Panel>
 
       <p className="px-1 text-center font-mono-num text-[10px] uppercase tracking-wider text-muted-foreground/60">
-        merawallet v0.4.0 · powered by mera + nullterminal
+        merawallet v0.5.0 · powered by mera + nullterminal
       </p>
     </div>
   );

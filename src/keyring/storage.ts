@@ -52,6 +52,7 @@ type LocalSchema = {
   activity?: ActivityItem[];
   /** Last few send targets, newest first, for one-tap reuse. */
   recentRecipients?: `0x${string}`[];
+  customTokens?: CustomToken[];
 };
 
 type SessionSchema = {
@@ -161,6 +162,22 @@ export async function patchActivity(
   await setLocal({
     activity: list.map((a) => (a.hash === hash ? { ...a, status } : a)),
   });
+}
+
+export type CustomToken = {
+  address: string;
+  symbol: string;
+  decimals: number;
+  logoURI?: string;
+};
+
+/** dApp-added tokens (wallet_watchAsset), merged into the NT list at read time. */
+export async function addCustomToken(token: CustomToken): Promise<void> {
+  const list = (await getLocal("customTokens")) ?? [];
+  if (list.some((t) => t.address.toLowerCase() === token.address.toLowerCase())) {
+    return;
+  }
+  await setLocal({ customTokens: [...list, token] });
 }
 
 export async function rememberRecipient(address: `0x${string}`): Promise<void> {

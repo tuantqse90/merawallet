@@ -17,6 +17,7 @@ import {
   Wordmark,
 } from "../shared/ui";
 import { useKeyring, useSettings } from "./data";
+import { Telemetry } from "./Telemetry";
 import { Activity } from "./screens/Activity";
 import { Portfolio } from "./screens/Portfolio";
 import { Receive } from "./screens/Receive";
@@ -88,7 +89,12 @@ export function App() {
           <StatusDot />
         </div>
       }
-      footer={<TabBar tab={tab} setTab={setTab} />}
+      footer={
+        <>
+          <Telemetry rpcUrl={settings.rpcUrl} />
+          <TabBar tab={tab} setTab={setTab} />
+        </>
+      }
     >
       {overlay?.kind === "send" && account && (
         <Send
@@ -105,6 +111,7 @@ export function App() {
         <TokenDetail
           row={overlay.row}
           account={account}
+          settings={settings}
           onSend={() =>
             setOverlay({ kind: "send", prefillToken: overlay.row.token.address })
           }
