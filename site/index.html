@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>merawallet — the passkey wallet for Monad</title>
+<meta name="description" content="A passkey is the wallet. Non-custodial Monad wallet with no seed phrase — WebAuthn PRF keys, best-price swaps via NullTerminal, built-in PnL, and a full dashboard.">
+<meta property="og:title" content="merawallet — the passkey wallet for Monad">
+<meta property="og:description" content="A passkey is the wallet. No seed phrase. Best-price swaps, built-in PnL, live Monad telemetry.">
+<meta property="og:image" content="https://merawallet.xyz/assets/1-passkey.png">
+<meta property="og:url" content="https://merawallet.xyz">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="/assets/icon128.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#0D0B14;--fg:#EBEAF0;--card:#151320;--muted:#1D1B27;--muted-fg:#9692AA;
+  --primary:#8D72F8;--mint:#2CEDAC;--danger:#F26969;--border:#2C293D;
+}
+*{margin:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font-family:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;line-height:1.6;
+background-image:radial-gradient(60% 40% at 50% -5%,rgba(131,110,249,.22) 0%,rgba(131,110,249,.05) 40%,transparent 72%),radial-gradient(rgba(235,234,240,.05) 1px,transparent 1px);
+background-size:100% 100%,22px 22px}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-feature-settings:"tnum" 1}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+header{position:sticky;top:0;z-index:50;backdrop-filter:blur(10px) saturate(150%);background:rgba(21,19,32,.65);border-bottom:1px solid rgba(44,41,61,.7)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px}
+.brand em{font-style:normal;color:var(--primary)}
+.nav-links{display:flex;align-items:center;gap:26px;font-size:14px;font-weight:600;color:var(--muted-fg)}
+.nav-links a:hover{color:var(--fg)}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--primary);color:#fff;font-weight:600;padding:11px 22px;border-radius:14px;
+box-shadow:0 0 0 1px rgba(141,114,248,.28),0 8px 28px -8px rgba(141,114,248,.52);transition:transform .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn.ghost{background:rgba(21,19,32,.6);border:1px solid var(--border);color:var(--fg);box-shadow:none}
+.btn.ghost:hover{border-color:rgba(141,114,248,.5)}
+.hero{display:flex;align-items:center;gap:60px;padding:90px 0 70px}
+.hero h1{font-size:clamp(38px,6vw,64px);line-height:1.05;letter-spacing:-.02em;font-weight:700}
+.hero h1 em{font-style:normal;color:var(--primary)}
+.hero p{color:var(--muted-fg);font-size:18px;max-width:480px;margin:20px 0 30px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:32px}
+.chip{border:1px solid rgba(44,237,172,.4);background:rgba(44,237,172,.08);color:var(--mint);border-radius:999px;padding:4px 13px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.chip.v{border-color:rgba(141,114,248,.4);background:rgba(141,114,248,.1);color:var(--primary)}
+.hero-mark{flex-shrink:0;filter:drop-shadow(0 0 60px rgba(131,110,249,.45));animation:breathe 6s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes draw{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+@keyframes pop{0%{opacity:0;transform:scale(0)}70%{opacity:1;transform:scale(1.3)}100%{opacity:1;transform:scale(1)}}
+.m-path{stroke-dasharray:100;animation:draw .9s cubic-bezier(.65,0,.35,1) .2s both}
+.m-node{transform-box:fill-box;transform-origin:center;animation:pop .35s cubic-bezier(.34,1.56,.64,1) both}
+.section{padding:60px 0}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-fg);margin-bottom:14px}
+h2{font-size:clamp(26px,4vw,38px);letter-spacing:-.01em;margin-bottom:34px}
+h2 em{font-style:normal;color:var(--primary)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:rgba(21,19,32,.62);border:1px solid rgba(44,41,61,.7);border-radius:18px;padding:24px;transition:transform .2s,border-color .2s}
+.card:hover{transform:translateY(-3px);border-color:rgba(141,114,248,.4)}
+.card h3{font-size:17px;margin:12px 0 8px}
+.card p{color:var(--muted-fg);font-size:14px}
+.card .ic{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(141,114,248,.12);border:1px solid rgba(141,114,248,.3);color:var(--primary)}
+.pipeline{background:rgba(21,19,32,.85);border:1px solid rgba(44,41,61,.9);border-radius:18px;padding:26px;overflow-x:auto}
+.pipeline .row{display:flex;align-items:center;gap:14px;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted-fg)}
+.pipeline b{color:var(--fg);font-weight:600}
+.pipeline .arrow{color:var(--primary)}
+.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.shots img{width:100%;border-radius:16px;border:1px solid rgba(44,41,61,.8);display:block;transition:transform .25s}
+.shots img:hover{transform:scale(1.02)}
+.steps{counter-reset:s;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.step{background:rgba(21,19,32,.62);border:1px solid rgba(44,41,61,.7);border-radius:18px;padding:22px}
+.step::before{counter-increment:s;content:"0" counter(s);font-family:'JetBrains Mono',monospace;color:var(--primary);font-size:13px;letter-spacing:.1em}
+.step h3{font-size:16px;margin:10px 0 6px}
+.step p{color:var(--muted-fg);font-size:14px}
+.step code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--muted);border:1px solid var(--border);border-radius:8px;padding:2px 8px;color:var(--mint)}
+.note{border:1px solid rgba(246,168,35,.4);background:rgba(246,168,35,.08);color:#F6A823;border-radius:14px;padding:14px 18px;font-size:14px;margin-top:18px}
+footer{border-top:1px solid rgba(44,41,61,.7);padding:36px 0;margin-top:40px;color:var(--muted-fg);font-size:13px}
+.foot{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.dot{display:inline-block;width:7px;height:7px;border-radius:99px;background:var(--mint);box-shadow:0 0 12px rgba(44,237,172,.8);margin-right:7px;animation:breathe 2.4s ease-in-out infinite}
+@media(max-width:860px){.hero{flex-direction:column-reverse;text-align:center;gap:36px;padding-top:56px}.hero p{margin-inline:auto}.chips{justify-content:center}.nav-links{display:none}}
+</style>
+</head>
+<body>
+
+<header><div class="wrap nav">
+  <a class="brand" href="/">
+    <svg width="30" height="30" viewBox="0 0 128 128"><defs><linearGradient id="hg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9B86FF"/><stop offset=".55" stop-color="#6C4FE0"/><stop offset="1" stop-color="#5538C8"/></linearGradient><radialGradient id="hn" cx=".35" cy=".3" r="1"><stop offset="0" stop-color="#C9BCFF"/><stop offset="1" stop-color="#7C63F0"/></radialGradient></defs><path d="M26 98 V34 L64 72 L102 34 V98" fill="none" stroke="url(#hg)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/><circle cx="26" cy="98" r="11" fill="url(#hn)"/><circle cx="102" cy="98" r="11" fill="url(#hn)"/><circle cx="64" cy="44" r="7" fill="#2CEDAC"/></svg>
+    mera<em>wallet</em>
+  </a>
+  <nav class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#screens">Screens</a>
+    <a href="#install">Install</a>
+    <a href="/privacy.html">Privacy</a>
+    <a href="https://github.com/tuantqse90/merawallet" target="_blank" rel="noreferrer">GitHub</a>
+  </nav>
+  <a class="btn" href="#install">Get the extension</a>
+</div></header>
+
+<main class="wrap">
+
+<section class="hero">
+  <div>
+    <h1>A passkey <em>is</em><br>the wallet.</h1>
+    <p>merawallet derives your Monad account from a WebAuthn passkey. No seed phrase to write down, no custody service — your Touch&nbsp;ID is the key, and swaps route through the NullTerminal aggregator.</p>
+    <div class="chips">
+      <span class="chip">monad mainnet</span>
+      <span class="chip v">non-custodial</span>
+      <span class="chip v">open source</span>
+    </div>
+    <a class="btn" href="#install">Install merawallet</a>
+    <a class="btn ghost" href="https://github.com/tuantqse90/merawallet" target="_blank" rel="noreferrer" style="margin-left:10px">View source</a>
+  </div>
+  <svg class="hero-mark" width="300" height="300" viewBox="0 0 128 128">
+    <defs><linearGradient id="mg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9B86FF"/><stop offset=".55" stop-color="#6C4FE0"/><stop offset="1" stop-color="#5538C8"/></linearGradient><radialGradient id="mn" cx=".35" cy=".3" r="1"><stop offset="0" stop-color="#C9BCFF"/><stop offset="1" stop-color="#7C63F0"/></radialGradient></defs>
+    <path class="m-path" pathLength="100" d="M26 98 V34 L64 72 L102 34 V98" fill="none" stroke="url(#mg)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle class="m-node" style="animation-delay:.25s" cx="26" cy="98" r="11" fill="url(#mn)"/>
+    <circle class="m-node" style="animation-delay:1.05s" cx="102" cy="98" r="11" fill="url(#mn)"/>
+    <circle class="m-node" style="animation-delay:1.25s" cx="64" cy="44" r="7" fill="#2CEDAC"/>
+  </svg>
+</section>
+
+<section class="section" id="how">
+  <div class="eyebrow">how it works</div>
+  <div class="pipeline"><div class="row">
+    <b>Touch ID</b><span class="arrow">→</span>
+    <span><b>WebAuthn PRF</b> · 256-bit entropy</span><span class="arrow">→</span>
+    <span><b>BIP-39</b> · 24 words</span><span class="arrow">→</span>
+    <span><b>BIP-44</b> · m/44'/60'/0'/0/i</span><span class="arrow">→</span>
+    <span><b>in-memory signer</b> · zeroed after every signature</span>
+  </div></div>
+  <p style="color:var(--muted-fg);font-size:14px;margin-top:14px">Standard derivation — the phrase stays re-derivable from your passkey and imports into any BIP-44 wallet. Keys are never written to disk and never leave your device.</p>
+</section>
+
+<section class="section" id="features">
+  <div class="eyebrow">why merawallet</div>
+  <h2>Everything a wallet should be. <em>On Monad terms.</em></h2>
+  <div class="grid">
+    <div class="card"><div class="ic">🔑</div><h3>Passkey native</h3><p>One prompt creates the wallet. Built on Category Labs' mera library — authenticator-bound entropy, signing sessions that zero their keys.</p></div>
+    <div class="card"><div class="ic">⚡</div><h3>Best-price swaps</h3><p>Quotes routed across 16 Monad venues by NullTerminal, with honest price impact, tiered fees, and live refresh.</p></div>
+    <div class="card"><div class="ic">🌐</div><h3>A real dApp wallet</h3><p>EIP-1193 + EIP-6963 provider. Connect to any Monad dApp; every signature goes through a dedicated approval window.</p></div>
+    <div class="card"><div class="ic">📊</div><h3>PnL built in</h3><p>Average-cost PnL per token — realized, unrealized, ROI and a trading calendar — computed by the NullTerminal index.</p></div>
+    <div class="card"><div class="ic">🖥</div><h3>Full dashboard</h3><p>Portfolio value chart, allocation, DEX trade tape and live Monad markets in a full-tab expanded view.</p></div>
+    <div class="card"><div class="ic">🛡</div><h3>Monad-first safety</h3><p>Live 300ms block telemetry, WMON wrap/unwrap, gas-aware MAX, unlimited-approval warnings, contract-recipient hints.</p></div>
+  </div>
+</section>
+
+<section class="section" id="screens">
+  <div class="eyebrow">screens</div>
+  <h2>Terminal aesthetic. <em>Trading-desk data.</em></h2>
+  <div class="shots">
+    <img src="/assets/1-passkey.png" alt="merawallet boot screen — a passkey is the wallet" loading="lazy">
+    <img src="/assets/2-swap.png" alt="Swap with live NullTerminal aggregator quote" loading="lazy">
+    <img src="/assets/3-dashboard.png" alt="Dashboard overview with portfolio chart" loading="lazy">
+    <img src="/assets/4-markets.png" alt="Live Monad markets with per-row charts" loading="lazy">
+  </div>
+</section>
+
+<section class="section" id="install">
+  <div class="eyebrow">install</div>
+  <h2>Up and running in <em>two minutes.</em></h2>
+  <div class="steps">
+    <div class="step"><h3>Get the build</h3><p>Clone <a href="https://github.com/tuantqse90/merawallet" style="color:var(--primary)">github.com/tuantqse90/merawallet</a> and run <code>npm i && npm run build</code> — it produces <code>dist/</code>.</p></div>
+    <div class="step"><h3>Load in Chrome</h3><p>Open <code>chrome://extensions</code>, enable Developer mode, hit <b>Load unpacked</b> and pick the <code>dist</code> folder.</p></div>
+    <div class="step"><h3>Create with a passkey</h3><p>The passkey console opens — one Touch ID prompt and your Monad wallet exists. On a Mac, save the passkey to <b>iCloud Keychain</b>.</p></div>
+  </div>
+  <div class="note">Chrome Web Store listing is in review — soon it's one click. Requires Chrome 122+ and an authenticator with the WebAuthn PRF extension (iCloud Keychain, Google Password Manager on Android, YubiKey 5+).</div>
+</section>
+
+</main>
+
+<footer><div class="wrap foot">
+  <span><span class="dot"></span>merawallet · the passkey wallet for Monad</span>
+  <span>built on <a href="https://mera.category.xyz" style="color:var(--primary)">mera</a> · data by <a href="https://nullterminal.xyz" style="color:var(--primary)">NullTerminal</a> · <a href="/privacy.html" style="color:var(--muted-fg)">privacy</a></span>
+</div></footer>
+
+</body>
+</html>

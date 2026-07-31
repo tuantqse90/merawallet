@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>merawallet — privacy policy</title><link rel="icon" type="image/png" href="/assets/icon128.png">
+<style>body{background:#0D0B14;color:#EBEAF0;font-family:ui-sans-serif,system-ui,sans-serif;line-height:1.7;max-width:720px;margin:0 auto;padding:60px 24px}
+h1{letter-spacing:-.01em}h2{margin-top:34px;color:#C9BCFF}a{color:#8D72F8}li{margin:6px 0;color:#9692AA}p{color:#9692AA;margin:14px 0}b{color:#EBEAF0}</style></head>
+<body><p><a href="/">&larr; merawallet.xyz</a></p><p><h1>merawallet privacy policy</h1></p><p><em>Last updated: 2026-07-31</em></p><p>merawallet is a non-custodial cryptocurrency wallet for the Monad network, published
+as a Chrome extension.</p><p><h2>What we collect</h2></p><p><b>Nothing.</b> merawallet has no backend, no analytics, no telemetry, and no accounts.
+We do not collect, store, sell, or share any personal data.</p><p><h2>Where your data lives</h2></p><p><li><b>Keys</b>: your wallet is derived from a WebAuthn passkey held by your device&#x27;s</li>
+  authenticator (e.g. iCloud Keychain). Private keys exist only in memory, only for
+  the moment they sign, and are zeroed afterwards. They are never written to disk and
+  never leave your device.
+<li><b>Local data</b>: public addresses, settings, transaction history, connected-site</li>
+  records, and (for imported wallets) a passkey-encrypted ciphertext vault are stored
+  in your browser&#x27;s extension storage on your device. Uninstalling the extension
+  deletes them.</p><p><h2>Network requests the wallet makes</h2></p><p>Like any blockchain client, merawallet talks to public endpoints to function. These
+services see your public wallet address and IP address as an inherent part of serving
+the request:</p><p><li><b>Monad RPC</b> (`rpc.monad.xyz`, or an RPC you configure): reading balances and</li>
+  broadcasting transactions you sign.
+<li><b>NullTerminal API</b> (`api.nullterminal.xyz`): token lists, prices, swap routes,</li>
+  and portfolio analytics for addresses you view.
+<li><b>Token logo hosts</b>: token icons load from the URLs published in token lists.</li></p><p>merawallet sends nothing else to anyone.</p><p><h2>dApp connections</h2></p><p>Sites you explicitly connect can see your public address and may request signatures;
+every request is shown to you for approval in a wallet-owned window and can be
+declined. You can disconnect any site in Settings at any time.</p><p><h2>Contact</h2></p><p>Issues and questions: <a href="https://github.com/tuantqse90/merawallet/issues">https://github.com/tuantqse90/merawallet/issues</a>
+</p></body></html>
