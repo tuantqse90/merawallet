@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
+import { fetchChart } from "../../api/nullterminal";
 import type { TokenBalance } from "../../chain/balances";
-import { EXPLORER_URL, NATIVE_MON } from "../../config";
+import { EXPLORER_URL, NATIVE_MON, WMON } from "../../config";
 import type { AccountRec } from "../../keyring/storage";
 import { formatAmount, formatPercent, formatUsd } from "../../lib/format";
+import { Sparkline } from "../../shared/Sparkline";
 import { GhostButton, MicroLabel, MintChip, Panel, PrimaryButton, TokenLogo } from "../../shared/ui";
 
 export function TokenDetail({
@@ -19,6 +22,34 @@ export function TokenDetail({
 }) {
   const { token } = row;
   const isNative = token.address.toLowerCase() === NATIVE_MON;
+  // Native MON's trades live under WMON in the NullTerminal index.
+  const chartAddress = isNative ? WMON : token.address;
+  const [closes, setCloses] = useState<number[] | null>(null);
+  const [range, setRange] = useState<{ high: number; low: number } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void fetchChart(chartAddress)
+      .then((candles) => {
+        if (!alive) return;
+        const last24 = candles.slice(-24);
+        if (last24.length >= 2) {
+          setCloses(last24.map((c) => c.c));
+          setRange({
+            high: Math.max(...last24.map((c) => c.h)),
+            low: Math.min(...last24.map((c) => c.l)),
+          });
+        } else {
+          setCloses([]);
+        }
+      })
+      .catch(() => {
+        if (alive) setCloses([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [chartAddress]);
   const explorerHref = isNative
     ? `${EXPLORER_URL}/address/${account.address}`
     : `${EXPLORER_URL}/token/${token.address}`;
@@ -53,6 +84,30 @@ export function TokenDetail({
           </div>
           {token.verified && <MintChip>verified</MintChip>}
         </div>
+
+        {closes === null && (
+          <div className="skeleton h-[104px] w-full rounded-2xl" />
+        )}
+        {closes && closes.length >= 2 && (
+          <Panel className="space-y-1 !p-2.5">
+            <div className="flex items-center justify-between px-1">
+              <MicroLabel>24h price</MicroLabel>
+              {range && (
+                <span className="font-mono-num text-[10px] text-muted-foreground">
+                  L {formatUsd(range.low)} · H {formatUsd(range.high)}
+                </span>
+              )}
+            </div>
+            <Sparkline values={closes} />
+          </Panel>
+        )}
+
+        {!token.verified && !isNative && (
+          <div className="rounded-xl border border-warning/40 bg-warning/10 px-3 py-2 text-[11px] leading-relaxed text-warning">
+            Unverified token — not on the curated Monad list. Check the contract
+            before trading.
+          </div>
+        )}
 
         <Panel className="space-y-2">
           <Row label="price" value={row.priceUsd !== undefined ? formatUsd(row.priceUsd) : "—"} />

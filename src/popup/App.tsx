@@ -58,7 +58,17 @@ export function App() {
   }
 
   if (!state.hasWallet) return <Gate mode="new" />;
-  if (!state.unlocked) return <Gate mode="locked" />;
+  if (!state.unlocked) {
+    return (
+      <Gate
+        mode="locked"
+        account={
+          state.accounts.find((a) => a.index === state.activeIndex) ??
+          state.accounts[0]
+        }
+      />
+    );
+  }
 
   const account = state.accounts.find((a) => a.index === state.activeIndex) ??
     state.accounts[0];
@@ -299,7 +309,13 @@ function AccountSheet({
   );
 }
 
-function Gate({ mode }: { mode: "new" | "locked" }) {
+function Gate({
+  mode,
+  account,
+}: {
+  mode: "new" | "locked";
+  account?: { address: `0x${string}`; label: string };
+}) {
   return (
     <Shell>
       <div className="flex flex-1 flex-col justify-center gap-6 px-5 pb-8">
@@ -308,6 +324,15 @@ function Gate({ mode }: { mode: "new" | "locked" }) {
             <Mark size={64} animate />
           </span>
           <Wordmark size="text-2xl" />
+          {mode === "locked" && account && (
+            <span className="animate-fade-in flex items-center gap-2 rounded-full border border-border/60 bg-card/70 py-1 pl-1 pr-3">
+              <Avatar address={account.address} size={22} />
+              <span className="text-xs font-semibold">{account.label}</span>
+              <span className="font-mono-num text-[11px] text-muted-foreground">
+                {shortAddress(account.address)}
+              </span>
+            </span>
+          )}
         </div>
         <div className="overflow-hidden rounded-2xl border border-border/80 bg-card/90 shadow-2xl">
           <div className="flex items-center gap-1.5 border-b border-border/60 px-3.5 py-2.5">

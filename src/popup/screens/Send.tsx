@@ -1,12 +1,18 @@
-import { useMemo, useState } from "react";
-import { isAddress } from "viem";
+import { useEffect, useMemo, useState } from "react";
+import { formatEther, isAddress } from "viem";
 import { EXPLORER_URL, NATIVE_MON } from "../../config";
 import type { NtToken } from "../../api/nullterminal";
+import { getPublicClient } from "../../chain/monad";
 import {
   encodeErc20Transfer,
   sendTransaction,
 } from "../../chain/tx";
-import type { AccountRec, Settings } from "../../keyring/storage";
+import {
+  getLocal,
+  rememberRecipient,
+  type AccountRec,
+  type Settings,
+} from "../../keyring/storage";
 import { WalletLockedError } from "../../keyring/signer";
 import { formatAmount, parseAmount, shortAddress } from "../../lib/format";
 import { openOnboarding } from "../../lib/tabs";
@@ -39,6 +45,12 @@ export function Send({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sentHash, setSentHash] = useState<`0x${string}` | null>(null);
+  const [recents, setRecents] = useState<`0x${string}`[]>([]);
+  const [fee, setFee] = useState<string | null>(null);
+
+  useEffect(() => {
+    void getLocal("recentRecipients").then((r) => setRecents(r ?? []));
+  }, []);
 
   const row = rows?.find(
     (r) => r.token.address.toLowerCase() === tokenAddr.toLowerCase(),
@@ -60,6 +72,43 @@ export function Send({
   const ready =
     raw !== undefined && raw > 0n && validRecipient && !insufficient && !busy;
 
+  // Best-effort network-fee preview once the form is complete (~300ms Monad blocks
+  // make this cheap to keep fresh; Monad charges the LIMIT, so show the limit cost).
+  useEffect(() => {
+    setFee(null);
+    if (raw === undefined || raw === 0n || !validRecipient || insufficient) return;
+    let alive = true;
+    const t = setTimeout(() => {
+      void (async () => {
+        try {
+          const client = getPublicClient(settings.rpcUrl);
+          const to = recipient as `0x${string}`;
+          const [gas, price] = await Promise.all([
+            client.estimateGas(
+              isNative
+                ? { account: account.address, to, value: raw }
+                : {
+                    account: account.address,
+                    to: token.address as `0x${string}`,
+                    data: encodeErc20Transfer(to, raw),
+                  },
+            ),
+            client.getGasPrice(),
+          ]);
+          if (alive) {
+            setFee(`≈ ${Number(formatEther(gas * price)).toFixed(6)} MON`);
+          }
+        } catch {
+          if (alive) setFee(null);
+        }
+      })();
+    }, 350);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [raw, recipient, validRecipient, insufficient, isNative, token.address, account.address, settings.rpcUrl]);
+
   const submit = async () => {
     if (!ready || raw === undefined) return;
     setBusy(true);
@@ -80,6 +129,7 @@ export function Send({
             },
       });
       setSentHash(hash);
+      await rememberRecipient(to);
       refresh();
     } catch (err) {
       if (err instanceof WalletLockedError) {
@@ -183,7 +233,30 @@ export function Send({
                 Not a valid Monad address.
               </div>
             )}
+            {!recipient && recents.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {recents.slice(0, 3).map((addr) => (
+                  <button
+                    key={addr}
+                    type="button"
+                    onClick={() => setRecipient(addr)}
+                    className="rounded-full border border-border/60 bg-card/70 px-2 py-0.5 font-mono-num text-[10px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+                  >
+                    {shortAddress(addr)}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
+          {fee && (
+            <div className="flex items-center justify-between px-1">
+              <span className="font-mono-num text-[10px] uppercase tracking-wider text-muted-foreground">
+                network fee
+              </span>
+              <span className="font-mono-num text-xs font-semibold">{fee}</span>
+            </div>
+          )}
 
           {error && <ErrorBanner>{error}</ErrorBanner>}
 

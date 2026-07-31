@@ -76,6 +76,23 @@ async function getJson<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+export type Candle = {
+  t: number;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  v: number;
+};
+
+/** Hourly candles for a listed token (newest last). */
+export async function fetchChart(address: string): Promise<Candle[]> {
+  const body = await getJson<{ candles: Candle[] }>(
+    `/v1/tokens/chart/${address}?tf=1h`,
+  );
+  return body.candles ?? [];
+}
+
 export async function fetchTokens(): Promise<NtToken[]> {
   const body = await getJson<{ tokens: NtToken[] } | NtToken[]>("/v1/tokens");
   return Array.isArray(body) ? body : body.tokens;

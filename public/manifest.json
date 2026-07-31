@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "merawallet",
-  "version": "0.3.0",
-  "description": "Passkey-native Monad wallet. Your passkey is the wallet — no seed phrase to lose. Connects to dApps, swaps routed by NullTerminal.",
+  "version": "0.4.0",
+  "description": "Passkey-native Monad wallet. Your passkey is the wallet \u2014 no seed phrase to lose. Connects to dApps, swaps routed by NullTerminal.",
   "minimum_chrome_version": "122",
   "action": {
     "default_popup": "popup.html",
@@ -20,14 +20,24 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["inpage.js"],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "inpage.js"
+      ],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.js"],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_start"
     }
   ],
@@ -37,7 +47,10 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "permissions": ["storage", "tabs"],
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
   "host_permissions": [
     "https://nullterminal.xyz/*",
     "https://api.nullterminal.xyz/*",

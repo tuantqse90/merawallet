@@ -29,6 +29,8 @@ export type Settings = {
   rpcUrl: string;
   slippageBps: number;
   autoLockMinutes: number;
+  /** Privacy mode: mask balances on the home screen. */
+  hideBalances?: boolean;
 };
 
 export type ActivityKind = "send" | "approve" | "swap" | "dapp";
@@ -48,6 +50,8 @@ type LocalSchema = {
   activeIndex?: number;
   settings?: Settings;
   activity?: ActivityItem[];
+  /** Last few send targets, newest first, for one-tap reuse. */
+  recentRecipients?: `0x${string}`[];
 };
 
 type SessionSchema = {
@@ -157,4 +161,13 @@ export async function patchActivity(
   await setLocal({
     activity: list.map((a) => (a.hash === hash ? { ...a, status } : a)),
   });
+}
+
+export async function rememberRecipient(address: `0x${string}`): Promise<void> {
+  const list = (await getLocal("recentRecipients")) ?? [];
+  const next = [
+    address,
+    ...list.filter((a) => a.toLowerCase() !== address.toLowerCase()),
+  ].slice(0, 5);
+  await setLocal({ recentRecipients: next });
 }

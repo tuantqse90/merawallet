@@ -14,7 +14,9 @@ export function formatAmount(raw: bigint, decimals: number): string {
 
 export function formatUsd(value: number | undefined): string {
   if (value === undefined) return "—";
-  if (value > 0 && value < 0.01) return "<$0.01";
+  // Sub-dollar prices (MON ≈ $0.02, memes far lower) need significant digits,
+  // not 2-decimal rounding.
+  if (value > 0 && value < 1) return `$${Number(value.toPrecision(4))}`;
   return value.toLocaleString("en-US", {
     style: "currency",
     currency: "USD",

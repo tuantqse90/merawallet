@@ -1,10 +1,13 @@
 import { useState } from "react";
 import type { TokenBalance } from "../../chain/balances";
-import type { AccountRec, Settings } from "../../keyring/storage";
+import { setLocal, type AccountRec, type Settings } from "../../keyring/storage";
 import { formatAmount, formatPercent, formatUsd, shortAddress } from "../../lib/format";
+import { useCountUp } from "../../lib/useCountUp";
 import { Avatar } from "../../shared/Avatar";
 import { ErrorBanner, MicroLabel, TokenLogo } from "../../shared/ui";
 import { usePortfolio } from "../data";
+
+const MASK = "•••••";
 
 export function Portfolio({
   account,
@@ -28,10 +31,16 @@ export function Portfolio({
     settings.rpcUrl,
   );
   const [copied, setCopied] = useState(false);
+  const [hidden, setHidden] = useState(!!settings.hideBalances);
   const copyAddress = async () => {
     await navigator.clipboard.writeText(account.address);
     setCopied(true);
     setTimeout(() => setCopied(false), 1400);
+  };
+  const toggleHidden = () => {
+    const next = !hidden;
+    setHidden(next);
+    void setLocal({ settings: { ...settings, hideBalances: next } });
   };
   const total = rows?.reduce((sum, r) => sum + (r.valueUsd ?? 0), 0);
   // 24h move of the priced part of the portfolio, value-weighted.
@@ -49,6 +58,7 @@ export function Portfolio({
           0,
         ) / pricedTotal
       : undefined;
+  const animatedTotal = useCountUp(rows ? total : undefined);
 
   return (
     <div className="flex flex-col gap-4 px-3 pb-4 pt-4">
@@ -92,13 +102,32 @@ export function Portfolio({
         )}
       </button>
       <div className="px-1">
-        <MicroLabel className="mb-1">total balance</MicroLabel>
+        <div className="mb-1 flex items-center gap-2">
+          <MicroLabel>total balance</MicroLabel>
+          <button
+            type="button"
+            onClick={toggleHidden}
+            title={hidden ? "Show balances" : "Hide balances"}
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              {hidden ? (
+                <path d="M3 3l18 18M10.5 5.2A9.8 9.8 0 0 1 12 5c5 0 9 4.5 10 7-.4 1-1.4 2.5-2.9 3.8M6.6 6.6C4.2 8 2.6 10.2 2 12c1 2.5 5 7 10 7 1.5 0 2.9-.4 4.2-1M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+              ) : (
+                <>
+                  <path d="M2 12c1-2.5 5-7 10-7s9 4.5 10 7c-1 2.5-5 7-10 7S3 14.5 2 12Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </>
+              )}
+            </svg>
+          </button>
+        </div>
         <div className="flex items-end justify-between gap-2">
           <span className="flex items-baseline gap-2">
             <span className="font-mono-num text-3xl font-bold tracking-tight">
-              {rows ? formatUsd(total) : "…"}
+              {hidden ? MASK : rows ? formatUsd(animatedTotal ?? total) : "…"}
             </span>
-            {change24h !== undefined && (
+            {!hidden && change24h !== undefined && (
               <span
                 className={`font-mono-num text-[11px] font-semibold ${
                   change24h >= 0 ? "text-mint" : "text-danger"
@@ -161,7 +190,7 @@ export function Portfolio({
                   {row.token.symbol}
                 </span>
                 <span className="font-mono-num text-sm font-semibold">
-                  {formatAmount(row.balance, row.token.decimals)}
+                  {hidden ? MASK : formatAmount(row.balance, row.token.decimals)}
                 </span>
               </span>
               <span className="flex items-baseline justify-between gap-2">
@@ -173,7 +202,7 @@ export function Portfolio({
                   {row.change24h !== undefined ? formatPercent(row.change24h) : ""}
                 </span>
                 <span className="font-mono-num text-[11px] text-muted-foreground">
-                  {formatUsd(row.valueUsd)}
+                  {hidden ? MASK : formatUsd(row.valueUsd)}
                 </span>
               </span>
             </span>

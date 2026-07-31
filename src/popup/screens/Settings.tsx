@@ -46,7 +46,12 @@ export function Settings({
     const slippageBps = Math.min(5000, Math.max(1, Number(slippage) || 50));
     const autoLockMinutes = Math.max(0, Number(autoLock) || 0);
     await setLocal({
-      settings: { rpcUrl: rpcUrl.trim() || settings.rpcUrl, slippageBps, autoLockMinutes },
+      settings: {
+        ...settings,
+        rpcUrl: rpcUrl.trim() || settings.rpcUrl,
+        slippageBps,
+        autoLockMinutes,
+      },
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
@@ -155,7 +160,7 @@ export function Settings({
       </Panel>
 
       <p className="px-1 text-center font-mono-num text-[10px] uppercase tracking-wider text-muted-foreground/60">
-        merawallet v0.3.0 · powered by mera + nullterminal
+        merawallet v0.4.0 · powered by mera + nullterminal
       </p>
     </div>
   );

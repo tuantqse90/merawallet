@@ -33,21 +33,28 @@ export function Activity({ settings }: { settings: Settings }) {
     };
   }, [settings.rpcUrl]);
 
+  const groups = groupByDay(items ?? []);
+
   return (
     <div className="flex flex-col gap-3 px-3 pb-4 pt-4">
       <MicroLabel className="px-1">activity</MicroLabel>
-      <div className="glass divide-y divide-border/40 overflow-hidden rounded-2xl border border-border/60">
-        {!items && (
-          <div className="flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground">
-            <Spinner /> Loading…
+      {!items && (
+        <div className="glass flex items-center justify-center gap-2 rounded-2xl border border-border/60 p-6 text-sm text-muted-foreground">
+          <Spinner /> Loading…
+        </div>
+      )}
+      {items?.length === 0 && (
+        <div className="glass rounded-2xl border border-border/60 px-4 py-8 text-center text-sm text-muted-foreground">
+          Nothing yet. Transactions you send from this wallet show up here.
+        </div>
+      )}
+      {groups.map((group) => (
+        <div key={group.label} className="space-y-1.5">
+          <div className="px-1 font-mono-num text-[10px] uppercase tracking-wider text-muted-foreground/70">
+            {group.label}
           </div>
-        )}
-        {items?.length === 0 && (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-            Nothing yet. Transactions you send from this wallet show up here.
-          </div>
-        )}
-        {items?.map((item) => (
+          <div className="glass divide-y divide-border/40 overflow-hidden rounded-2xl border border-border/60">
+            {group.items.map((item) => (
           <a
             key={item.hash}
             href={`${EXPLORER_URL}/tx/${item.hash}`}
@@ -65,22 +72,46 @@ export function Activity({ settings }: { settings: Settings }) {
                 {shortAddress(item.hash)} · {timeAgo(item.ts)}
               </span>
             </span>
-            <span
-              className={`font-mono-num text-[10px] uppercase tracking-wider ${
-                item.status === "confirmed"
-                  ? "text-mint"
-                  : item.status === "failed"
-                    ? "text-danger"
-                    : "text-warning"
-              }`}
-            >
-              {item.status}
-            </span>
-          </a>
-        ))}
-      </div>
+                <span
+                  className={`font-mono-num text-[10px] uppercase tracking-wider ${
+                    item.status === "confirmed"
+                      ? "text-mint"
+                      : item.status === "failed"
+                        ? "text-danger"
+                        : "text-warning"
+                  }`}
+                >
+                  {item.status}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
+}
+
+function groupByDay(items: ActivityItem[]): { label: string; items: ActivityItem[] }[] {
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86_400_000).toDateString();
+  const groups: { label: string; items: ActivityItem[] }[] = [];
+  for (const item of items) {
+    const day = new Date(item.ts).toDateString();
+    const label =
+      day === today
+        ? "today"
+        : day === yesterday
+          ? "yesterday"
+          : new Date(item.ts).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            });
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) last.items.push(item);
+    else groups.push({ label, items: [item] });
+  }
+  return groups;
 }
 
 function StatusIcon({ status }: { status: ActivityItem["status"] }) {
